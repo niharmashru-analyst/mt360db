@@ -5,7 +5,7 @@ import Callout from '../components/Callout.jsx';
 import TrendChart from '../components/TrendChart.jsx';
 import {
   sumSalesValue, sumStockQty, stockValue, oosPct, avgNOD, marginPctBlended,
-  achievementPct, growthPct, applyFilters, topN, formatCurrency, formatPct,
+  achievementPct, growthPct, applyFilters, topN, formatCurrency, formatPct, formatGrowthPct,
 } from '../data/metrics.js';
 
 export default function ExecutiveOverview() {
@@ -14,7 +14,7 @@ export default function ExecutiveOverview() {
   const growth = growthPct(allRecords, filters);
   const achievement = achievementPct(filteredRecords);
   const oos = oosPct(filteredRecords);
-  const nod = avgNOD(filteredRecords);
+  const nod = avgNOD(filteredRecords, allRecords, filters);
   const margin = marginPctBlended(filteredRecords);
   const stockVal = stockValue(filteredRecords);
 
@@ -43,7 +43,7 @@ export default function ExecutiveOverview() {
 
       <div className="kpi-grid">
         <KpiCard label="MT Sales (MTD)" value={formatCurrency(sumSalesValue(filteredRecords))} />
-        <KpiCard label="Growth % (YoY)" value={formatPct(growth)} tone={growth >= 0 ? 'success' : 'danger'} />
+        <KpiCard label="Growth % (YoY)" value={formatGrowthPct(growth)} tone={growth === null ? 'neutral' : growth >= 0 ? 'success' : 'danger'} />
         <KpiCard label="Achievement %" value={formatPct(achievement)} tone={achievement >= 100 ? 'success' : 'warning'} />
         <KpiCard label="Stock Value" value={formatCurrency(stockVal)} />
         <KpiCard label="Avg NOD" value={`${nod.toFixed(0)} days`} />
@@ -52,8 +52,11 @@ export default function ExecutiveOverview() {
         <KpiCard label="Active Rows" value={filteredRecords.length.toLocaleString('en-IN')} subtext="SKU-store combos" />
       </div>
 
-      <Callout tone={growth >= 0 ? 'success' : 'danger'} title="What's happening in MT">
-        Sales are {growth >= 0 ? 'up' : 'down'} <strong>{formatPct(Math.abs(growth))}</strong> YoY this month.{' '}
+      <Callout tone={growth === null ? 'info' : growth >= 0 ? 'success' : 'danger'} title="What's happening in MT">
+        {growth === null
+          ? <>No last-year data is available for this month yet — YoY growth will show once 12+ months of history exist.{' '}</>
+          : <>Sales are {growth >= 0 ? 'up' : 'down'} <strong>{formatPct(Math.abs(growth))}</strong> YoY this month.{' '}</>
+        }
         <strong>{oosCount}</strong> SKU-store combinations are out of stock and <strong>{excessCount}</strong> are
         carrying excess inventory (NOD &gt; 60 days). Achievement vs target stands at <strong>{formatPct(achievement)}</strong>.
       </Callout>

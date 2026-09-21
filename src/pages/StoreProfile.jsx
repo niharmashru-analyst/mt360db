@@ -5,12 +5,12 @@ import DataTable from '../components/DataTable.jsx';
 import Callout from '../components/Callout.jsx';
 import StatusBadge from '../components/StatusBadge.jsx';
 import {
-  applyFilters, sumSalesValue, avgNOD, oosPct, calcNOD, stockHealthFlag, getPriorYearMonth,
-  formatCurrency, formatPct, formatNumber,
+  applyFilters, sumSalesValue, avgNODForScope, oosPct, calcNOD, stockHealthFlag, getPriorYearMonth,
+  formatCurrency, formatPct, formatNumber, formatGrowthPct,
 } from '../data/metrics.js';
 
 export default function StoreProfile() {
-  const { allRecords, filters } = useFilters();
+  const { allRecords, filters, monthlyQtyIndex } = useFilters();
   const outlets = useMemo(
     () => [...new Set(allRecords.map((r) => r.outletName))].sort(),
     [allRecords]
@@ -20,6 +20,10 @@ export default function StoreProfile() {
   const records = useMemo(
     () => allRecords.filter((r) => r.outletName === selectedOutlet && r.month === filters.month),
     [allRecords, selectedOutlet, filters.month]
+  );
+  const outletHistory = useMemo(
+    () => allRecords.filter((r) => r.outletName === selectedOutlet),
+    [allRecords, selectedOutlet]
   );
   const lyRecords = useMemo(
     () => allRecords.filter((r) => r.outletName === selectedOutlet && r.month === getPriorYearMonth(filters.month)),
@@ -35,9 +39,9 @@ export default function StoreProfile() {
     sku: r.sku,
     sales: r.salesValue,
     stock: r.stockQty,
-    nod: calcNOD(r),
+    nod: calcNOD(r, monthlyQtyIndex),
     pareto: r.pareto,
-    status: stockHealthFlag(r),
+    status: stockHealthFlag(r, monthlyQtyIndex),
   }));
 
   const opportunityRows = skuRows.filter((r) => r.status === 'OOS' && r.pareto !== 'Others')
@@ -55,9 +59,9 @@ export default function StoreProfile() {
 
       <div className="kpi-grid">
         <KpiCard label="Sales (MTD)" value={formatCurrency(sales)} />
-        <KpiCard label="Growth % YoY" value={formatPct(growth)} tone={growth >= 0 ? 'success' : 'danger'} />
+        <KpiCard label="Growth % YoY" value={formatGrowthPct(growth)} tone={growth === null ? 'neutral' : growth >= 0 ? 'success' : 'danger'} />
         <KpiCard label="Contribution to Chain" value="—" subtext="see Retailer 360" />
-        <KpiCard label="Avg NOD" value={`${avgNOD(records).toFixed(0)} days`} />
+        <KpiCard label="Avg NOD" value={`${avgNODForScope(records, outletHistory, filters.month).toFixed(0)} days`} />
         <KpiCard label="OOS %" value={formatPct(oosPct(records))} tone={oosPct(records) > 10 ? 'danger' : 'success'} />
         <KpiCard label="SKUs Listed" value={records.length} />
       </div>

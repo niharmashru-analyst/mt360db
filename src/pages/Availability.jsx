@@ -9,7 +9,7 @@ import {
 } from '../data/metrics.js';
 
 export default function Availability() {
-  const { filteredRecords, allRecords } = useFilters();
+  const { filteredRecords, allRecords, filters } = useFilters();
 
   const avgSalesMap = useMemo(() => buildAvgMonthlySalesByKey(allRecords), [allRecords]);
 
@@ -47,7 +47,7 @@ export default function Availability() {
         <KpiCard label="OOS SKU-Store Combos" value={formatNumber(oosRecords.length)} />
         <KpiCard label="Est. Sales at Risk" value={formatCurrency(salesAtRisk)} tone="danger" />
         <KpiCard label="Top/Priority Pareto OOS" value={formatNumber(topPareto.length)} tone="warning" />
-        <KpiCard label="Avg NOD" value={`${avgNOD(filteredRecords).toFixed(0)} days`} />
+        <KpiCard label="Avg NOD" value={`${avgNOD(filteredRecords, allRecords, filters).toFixed(0)} days`} />
         <KpiCard label="Excess Stock Combos" value={formatNumber(excessCount)} tone="warning" />
       </div>
 

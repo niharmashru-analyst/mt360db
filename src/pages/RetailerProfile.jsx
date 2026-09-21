@@ -5,7 +5,7 @@ import DataTable from '../components/DataTable.jsx';
 import Callout from '../components/Callout.jsx';
 import {
   applyFilters, sumSalesValue, sumStockQty, oosPct, avgNOD, getPriorYearMonth,
-  formatCurrency, formatPct, formatNumber,
+  formatCurrency, formatPct, formatNumber, formatGrowthPct,
 } from '../data/metrics.js';
 
 export default function RetailerProfile() {
@@ -31,7 +31,7 @@ export default function RetailerProfile() {
     ? (chainListing.filter((l) => l.listed).length / chainListing.length) * 100 : 0;
 
   const oos = oosPct(records);
-  const nod = avgNOD(records);
+  const nod = avgNOD(records, allRecords, chainFilters);
 
   // opportunity calc: what if distribution went to 95% and OOS dropped to 3%
   const potentialFromDist = sales * Math.max(0, (0.95 - distributionPct / 100));
@@ -49,7 +49,7 @@ export default function RetailerProfile() {
 
       <div className="kpi-grid">
         <KpiCard label="Sales (MTD)" value={formatCurrency(sales)} />
-        <KpiCard label="Growth % YoY" value={formatPct(growth)} tone={growth >= 0 ? 'success' : 'danger'} />
+        <KpiCard label="Growth % YoY" value={formatGrowthPct(growth)} tone={growth === null ? 'neutral' : growth >= 0 ? 'success' : 'danger'} />
         <KpiCard label="Active Outlets" value={`${activeOutlets} / ${chainOutlets.length}`} />
         <KpiCard label="Distribution %" value={formatPct(distributionPct)} />
         <KpiCard label="OOS %" value={formatPct(oos)} tone={oos > 10 ? 'danger' : 'success'} />

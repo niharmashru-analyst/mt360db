@@ -4,7 +4,7 @@ import KpiCard from '../components/KpiCard.jsx';
 import DataTable from '../components/DataTable.jsx';
 import Callout from '../components/Callout.jsx';
 import {
-  isOOS, calcNOD, buildAvgMonthlySalesByKey, groupBy, sumSalesValue,
+  isOOS, buildAvgMonthlySalesByKey, groupBy, sumSalesValue,
   formatCurrency, formatNumber,
 } from '../data/metrics.js';
 

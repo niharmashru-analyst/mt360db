@@ -4,7 +4,6 @@ import KpiCard from '../components/KpiCard.jsx';
 import DataTable from '../components/DataTable.jsx';
 import Callout from '../components/Callout.jsx';
 import { sumSalesValue, oosPct, formatCurrency, formatPct } from '../data/metrics.js';
-import { REGIONS } from '../data/schema.js';
 
 export default function GrowthSimulator() {
   const { filteredRecords, listingMatrix } = useFilters();

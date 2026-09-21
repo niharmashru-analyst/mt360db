@@ -1,0 +1,17 @@
+services:
+  - type: web
+    name: mt360-dashboard
+    runtime: node
+    buildCommand: npm install && npm run build
+    startCommand: npm start
+    envVars:
+      - key: NODE_VERSION
+        value: 20.11.0
+      - key: CACHE_MINUTES
+        value: 10
+      - key: ONEDRIVE_EXCEL_URL
+        sync: false # set the real value in the Render dashboard, not here
+      - key: APP_PASSWORD
+        sync: false # set the real value in the Render dashboard, not here
+      - key: SESSION_SECRET
+        generateValue: true

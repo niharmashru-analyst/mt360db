@@ -6,11 +6,11 @@ import TrendChart from '../components/TrendChart.jsx';
 import StatusBadge from '../components/StatusBadge.jsx';
 import {
   applyFilters, sumSalesValue, calcNOD, stockHealthFlag, getPriorYearMonth,
-  formatCurrency, formatPct, formatNumber,
+  formatCurrency, formatPct, formatNumber, formatGrowthPct,
 } from '../data/metrics.js';
 
 export default function SkuProfile() {
-  const { allRecords, filters, months } = useFilters();
+  const { allRecords, filters, months, monthlyQtyIndex } = useFilters();
   const skus = useMemo(() => [...new Set(allRecords.map((r) => r.sku))].sort(), [allRecords]);
   const [selectedSku, setSelectedSku] = useState(skus[0]);
 
@@ -46,9 +46,9 @@ export default function SkuProfile() {
     outlet: r.outletName,
     sales: r.salesValue,
     stock: r.stockQty,
-    nod: calcNOD(r),
+    nod: calcNOD(r, monthlyQtyIndex),
     growth: null,
-    status: stockHealthFlag(r),
+    status: stockHealthFlag(r, monthlyQtyIndex),
   }));
 
   return (
@@ -76,7 +76,7 @@ export default function SkuProfile() {
         </div>
         <div className="kpi-grid kpi-grid-compact">
           <KpiCard label="Sales (MTD)" value={formatCurrency(sales)} />
-          <KpiCard label="Growth % YoY" value={formatPct(growth)} tone={growth >= 0 ? 'success' : 'danger'} />
+          <KpiCard label="Growth % YoY" value={formatGrowthPct(growth)} tone={growth === null ? 'neutral' : growth >= 0 ? 'success' : 'danger'} />
           <KpiCard label="Stock Qty" value={formatNumber(totalStock)} />
           <KpiCard label="Outlets Listed" value={records.length} />
         </div>

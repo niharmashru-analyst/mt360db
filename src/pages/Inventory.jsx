@@ -8,18 +8,19 @@ import {
 } from '../data/metrics.js';
 
 export default function Inventory() {
-  const { filteredRecords } = useFilters();
+  const { filteredRecords, allRecords, filters, monthlyQtyIndex } = useFilters();
   const [quadrantFilter, setQuadrantFilter] = useState(null);
 
   const withHealth = useMemo(
-    () => filteredRecords.map((r) => ({ ...r, health: stockHealthFlag(r), nod: calcNOD(r) })),
-    [filteredRecords]
+    () => filteredRecords.map((r) => ({ ...r, health: stockHealthFlag(r, monthlyQtyIndex), nod: calcNOD(r, monthlyQtyIndex) })),
+    [filteredRecords, monthlyQtyIndex]
   );
 
   const excessCount = withHealth.filter((r) => r.health === 'Excess').length;
   const lowCount = withHealth.filter((r) => r.health === 'Low').length;
   const oosCount = withHealth.filter((r) => r.health === 'OOS').length;
   const healthyCount = withHealth.filter((r) => r.health === 'Healthy').length;
+  const deadCount = withHealth.filter((r) => r.health === 'Dead').length;
 
   const matrixPoints = useMemo(() => {
     const maxSales = Math.max(1, ...withHealth.map((r) => r.salesValue));
@@ -49,11 +50,12 @@ export default function Inventory() {
 
       <div className="kpi-grid">
         <KpiCard label="Stock Value (est.)" value={formatCurrency(stockValue(filteredRecords))} />
-        <KpiCard label="Avg NOD" value={`${avgNOD(filteredRecords).toFixed(0)} days`} />
+        <KpiCard label="Avg NOD" value={`${avgNOD(filteredRecords, allRecords, filters).toFixed(0)} days`} />
         <KpiCard label="OOS Combos" value={formatNumber(oosCount)} tone="danger" />
         <KpiCard label="Low Stock Combos" value={formatNumber(lowCount)} tone="warning" />
         <KpiCard label="Excess Combos" value={formatNumber(excessCount)} tone="warning" />
         <KpiCard label="Healthy Combos" value={formatNumber(healthyCount)} tone="success" />
+        <KpiCard label="Dead Stock Combos" value={formatNumber(deadCount)} tone="danger" />
       </div>
 
       <div className="section">
@@ -63,6 +65,7 @@ export default function Inventory() {
           <button onClick={() => setQuadrantFilter('Healthy')} className="q-btn q-success">Healthy ({healthyCount})</button>
           <button onClick={() => setQuadrantFilter('Low')} className="q-btn q-warning">Low Stock ({lowCount})</button>
           <button onClick={() => setQuadrantFilter('Excess')} className="q-btn q-warning">Excess ({excessCount})</button>
+          <button onClick={() => setQuadrantFilter('Dead')} className="q-btn q-danger">Dead Stock ({deadCount})</button>
         </div>
         <Matrix2x2
           points={matrixPoints}

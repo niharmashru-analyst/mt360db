@@ -1,5 +1,6 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
+import { useFilters } from '../context/FilterContext.jsx';
 
 const NAV_GROUPS = [
   {
@@ -38,16 +39,23 @@ const NAV_GROUPS = [
   },
   {
     label: null,
-    items: [{ path: '/action-center', label: '⚡ Action Center' }],
+    items: [
+      { path: '/action-center', label: '⚡ Action Center' },
+      { path: '/data-health', label: '🩺 Data Health' },
+    ],
   },
 ];
 
 export default function Sidebar() {
+  const { dataSource } = useFilters();
   return (
     <nav className="sidebar">
       <div className="sidebar-header">
         <div className="sidebar-title">MT 360</div>
         <div className="sidebar-subtitle">Modern Trade Intelligence</div>
+      </div>
+      <div className={`data-source-badge ${dataSource}`}>
+        {dataSource === 'live' ? '● LIVE DATA' : '● MOCK DATA'}
       </div>
       {NAV_GROUPS.map((group, gi) => (
         <div className="sidebar-group" key={gi}>

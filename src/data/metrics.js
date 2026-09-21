@@ -82,19 +82,85 @@ export function contributionPct(subsetRecords, totalRecords) {
   return total > 0 ? (sumSalesValue(subsetRecords) / total) * 100 : 0;
 }
 
-// NOD = Days of stock cover, monthly grain assumed (30 days)
-export function calcNOD(record) {
-  const dailyRate = record.salesQty / 30;
+// ============================================================================
+// NOD (Number of Days of stock cover) — EKA's rule, which we're standardizing
+// on: NOD is NEVER computed by averaging individual per-row NOD values
+// (that's what 360-MT did, and it's misleading — e.g. one SKU at 5 days and
+// another at Infinity averages to a meaningless number). Instead it's always:
+//   total stock ÷ (trailing 3-month average sales, expressed as a daily rate)
+// computed at whatever aggregation level you're looking at (one row, one
+// SKU, one store, one chain, the whole filtered set).
+// This requires the full historical dataset (allRecords), not just the
+// current month's filtered slice, to look back 3 months per SKU-outlet key.
+// ============================================================================
+
+// Precompute once per dataset load: { "outletCode|skuCode|month": salesQty }
+export function buildMonthlyQtyIndex(allRecords) {
+  const idx = {};
+  allRecords.forEach((r) => {
+    idx[`${r.outletCode}|${r.skuCode}|${r.month}`] = (idx[`${r.outletCode}|${r.skuCode}|${r.month}`] || 0) + r.salesQty;
+  });
+  return idx;
+}
+
+// Trailing 3-month average sales qty for one SKU-outlet combo, as of `month`.
+export function trailing3MoAvgQty(outletCode, skuCode, month, monthlyQtyIndex) {
+  const months = [month, getPriorMonth(month, 1), getPriorMonth(month, 2)];
+  const vals = months
+    .map((m) => monthlyQtyIndex[`${outletCode}|${skuCode}|${m}`])
+    .filter((v) => v !== undefined);
+  if (vals.length === 0) return 0;
+  return vals.reduce((a, b) => a + b, 0) / vals.length;
+}
+
+// Per-row NOD using the trailing-3-month rule (replaces the old single-month calcNOD).
+export function calcNOD(record, monthlyQtyIndex) {
+  if (!monthlyQtyIndex) {
+    // No index provided — caller hasn't wired trailing-month data through yet.
+    // Fall back to single-month rate so the app doesn't crash, but this path
+    // should be avoided; pass buildMonthlyQtyIndex(allRecords) wherever possible.
+    const dailyRate = record.salesQty / 30;
+    if (dailyRate <= 0) return record.stockQty > 0 ? Infinity : 0;
+    return record.stockQty / dailyRate;
+  }
+  const avgQty = trailing3MoAvgQty(record.outletCode, record.skuCode, record.month, monthlyQtyIndex);
+  const dailyRate = avgQty / 30;
   if (dailyRate <= 0) return record.stockQty > 0 ? Infinity : 0;
   return record.stockQty / dailyRate;
 }
 
-export function avgNOD(records) {
-  const withSales = records.filter((r) => r.salesQty > 0);
-  if (withSales.length === 0) return 0;
-  const totalStock = sum(withSales, 'stockQty');
-  const totalDailyRate = sum(withSales, 'salesQty') / 30;
-  return totalDailyRate > 0 ? totalStock / totalDailyRate : 0;
+// Aggregate NOD for a whole filtered set — total stock ÷ the group's own
+// trailing-3-month average sales (summed across the group each month), never
+// an average of individual NOD values.
+export function avgNOD(records, allRecords, filters) {
+  if (records.length === 0) return 0;
+  const totalStock = sum(records, 'stockQty');
+  if (!allRecords || !filters || !filters.month) {
+    // fallback: single-month rate (same limitation as calcNOD's fallback)
+    const totalDailyRate = sum(records, 'salesQty') / 30;
+    return totalDailyRate > 0 ? totalStock / totalDailyRate : 0;
+  }
+  const months = [filters.month, getPriorMonth(filters.month, 1), getPriorMonth(filters.month, 2)];
+  const monthlyTotals = months.map((m) => sumSalesQty(applyFilters(allRecords, { ...filters, month: m })));
+  const presentTotals = monthlyTotals.filter((_, i) => allRecords.some((r) => r.month === months[i]));
+  const avgQty = presentTotals.length > 0 ? presentTotals.reduce((a, b) => a + b, 0) / presentTotals.length : 0;
+  const dailyRate = avgQty / 30;
+  return dailyRate > 0 ? totalStock / dailyRate : 0;
+}
+
+// Same aggregate NOD rule, but for pages that scope by something applyFilters
+// doesn't know about (a single outlet name, a single SKU) rather than the
+// generic filter fields. Pass every record already scoped to that one
+// outlet/SKU (across all months) plus the current month's slice of it.
+export function avgNODForScope(currentMonthRecords, allRecordsInScope, month) {
+  if (currentMonthRecords.length === 0) return 0;
+  const totalStock = sum(currentMonthRecords, 'stockQty');
+  const months = [month, getPriorMonth(month, 1), getPriorMonth(month, 2)];
+  const monthlyTotals = months.map((m) => sumSalesQty(allRecordsInScope.filter((r) => r.month === m)));
+  const presentTotals = monthlyTotals.filter((_, i) => allRecordsInScope.some((r) => r.month === months[i]));
+  const avgQty = presentTotals.length > 0 ? presentTotals.reduce((a, b) => a + b, 0) / presentTotals.length : 0;
+  const dailyRate = avgQty / 30;
+  return dailyRate > 0 ? totalStock / dailyRate : 0;
 }
 
 export function stockValue(records) {
@@ -105,12 +171,26 @@ export function isOOS(record) {
   return record.stockQty <= THRESHOLDS.OOS_STOCK_QTY && record.listed;
 }
 
-export function stockHealthFlag(record) {
+// Dead / Slow / Healthy, per EKA's derived Stock Health filter definitions.
+export function stockHealthFlag(record, monthlyQtyIndex) {
   if (isOOS(record)) return 'OOS';
-  const nod = calcNOD(record);
+  const nod = calcNOD(record, monthlyQtyIndex);
+  const avgQty = monthlyQtyIndex
+    ? trailing3MoAvgQty(record.outletCode, record.skuCode, record.month, monthlyQtyIndex)
+    : record.salesQty;
+  if (record.stockQty > 0 && avgQty === 0) return 'Dead'; // stock but no sales in the trailing window
   if (nod === Infinity || nod > THRESHOLDS.NOD_HIGH) return 'Excess';
   if (nod < THRESHOLDS.NOD_LOW) return 'Low';
   return 'Healthy';
+}
+
+// NOD bucket for the derived filter EKA uses: <15, 15-30, 31-60, >60 days.
+export function nodBucket(nod) {
+  if (nod === Infinity) return '>60';
+  if (nod < 15) return '<15';
+  if (nod <= 30) return '15-30';
+  if (nod <= 60) return '31-60';
+  return '>60';
 }
 
 export function oosPct(records) {
@@ -218,6 +298,15 @@ export function formatCurrency(value) {
 export function formatPct(value, decimals = 1) {
   if (value === null || value === undefined || isNaN(value) || !isFinite(value)) return '—';
   return `${value.toFixed(decimals)}%`;
+}
+
+// Dedicated formatter for YoY growth values specifically — shows "Not Active LY"
+// instead of a blank dash or (worse) a misleading "0.0%" when there's no
+// prior-year data to compare against. Use this anywhere growth/YoY is shown;
+// use formatPct for every other percentage (OOS%, discount%, achievement%, etc).
+export function formatGrowthPct(value, decimals = 1) {
+  if (value === null || value === undefined || isNaN(value) || !isFinite(value)) return 'Not Active LY';
+  return `${value >= 0 ? '+' : ''}${value.toFixed(decimals)}%`;
 }
 
 export function formatNumber(value) {

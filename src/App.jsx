@@ -21,6 +21,7 @@ import StorePerformanceMatrix from './pages/StorePerformanceMatrix.jsx';
 import OpportunityEngine from './pages/OpportunityEngine.jsx';
 import GrowthSimulator from './pages/GrowthSimulator.jsx';
 import ActionCenter from './pages/ActionCenter.jsx';
+import DataHealth from './pages/DataHealth.jsx';
 
 export default function App() {
   return (
@@ -49,6 +50,7 @@ export default function App() {
                 <Route path="/opportunity-engine" element={<OpportunityEngine />} />
                 <Route path="/growth-simulator" element={<GrowthSimulator />} />
                 <Route path="/action-center" element={<ActionCenter />} />
+                <Route path="/data-health" element={<DataHealth />} />
               </Routes>
             </div>
           </div>

@@ -86,6 +86,12 @@ body {
   border-radius: 6px; font-size: 0.8rem; cursor: pointer; color: var(--text-muted);
 }
 .filter-reset-btn:hover { background: var(--border); }
+.filter-refresh-btn {
+  padding: 7px 14px; border: none; background: var(--primary); color: #fff;
+  border-radius: 6px; font-size: 0.8rem; font-weight: 600; cursor: pointer;
+}
+.filter-refresh-btn:hover { opacity: 0.9; }
+.filter-refresh-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 
 /* ---------- Page ---------- */
 .page h1 { margin: 4px 0 4px; font-size: 1.5rem; }
@@ -169,3 +175,30 @@ body {
 .priority-high { color: var(--danger); }
 .priority-medium { color: var(--warning); }
 .priority-low { color: #d1d5db; }
+
+/* ---------- Loading / Error screens ---------- */
+.load-loading-screen, .load-error-screen {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  height: 100vh; gap: 14px; color: var(--text-muted); font-size: 0.95rem;
+}
+.load-error-screen h2 { color: var(--danger); margin: 0; }
+.load-error-screen p { max-width: 480px; text-align: center; }
+.spinner {
+  width: 32px; height: 32px; border-radius: 50%;
+  border: 3px solid var(--border); border-top-color: var(--primary);
+  animation: spin 0.8s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+.retry-btn {
+  padding: 8px 20px; background: var(--primary); color: #fff; border: none;
+  border-radius: 8px; font-size: 0.85rem; font-weight: 600; cursor: pointer;
+}
+.retry-btn:hover { opacity: 0.9; }
+
+/* ---------- Data source badge ---------- */
+.data-source-badge {
+  margin: 0 20px 12px; padding: 4px 10px; border-radius: 6px; font-size: 0.7rem;
+  font-weight: 700; text-align: center; letter-spacing: 0.03em;
+}
+.data-source-badge.live { background: #052e16; color: #4ade80; }
+.data-source-badge.mock { background: #451a03; color: #fbbf24; }
