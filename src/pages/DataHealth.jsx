@@ -5,6 +5,7 @@ import Callout from '../components/Callout.jsx';
 import DataTable from '../components/DataTable.jsx';
 import { formatNumber } from '../data/metrics.js';
 import { fetchDataHealth } from '../data/loadData.js';
+import { buildDataConfidence } from '../data/decisionIntelligence.js';
 
 export default function DataHealth() {
   const { dataSource, allRecords } = useFilters();
@@ -51,6 +52,7 @@ export default function DataHealth() {
 
   // Unmatched outlet/SKU codes: codes referenced somewhere that don't appear
   // consistently — a lightweight proxy check using what's already loaded.
+  const confidence = buildDataConfidence(allRecords, health);
   const outletCodesSeen = new Set(allRecords.map((r) => r.outletCode));
   const skuCodesSeen = new Set(allRecords.map((r) => r.skuCode));
   const blankOutletCodes = allRecords.filter((r) => !r.outletCode).length;
@@ -62,6 +64,7 @@ export default function DataHealth() {
       <p className="page-subtitle">Checked {new Date(health.checkedAt).toLocaleString()} · sheet "{health.sheetUsed}"</p>
 
       <div className="kpi-grid">
+        <KpiCard label="Data Confidence" value={`${confidence.score}%`} tone={confidence.score>=85?'success':confidence.score>=70?'warning':'danger'} />
         <KpiCard label="Rows Loaded" value={formatNumber(health.rowCount)} />
         <KpiCard label="Months Found" value={health.monthsFound.length} />
         <KpiCard label="Unique Outlets" value={formatNumber(health.uniqueOutletCodes)} />
@@ -76,6 +79,15 @@ export default function DataHealth() {
           value={formatNumber(health.zeroValueRows)}
           tone={health.zeroValueRows > 0 ? 'warning' : 'success'}
         />
+      </div>
+
+      <div className="section">
+        <h2>Data Confidence Score</h2>
+        <p className="page-subtitle">A weighted quality signal for whether the data is trustworthy enough to drive automated decisions.</p>
+        <div className="confidence-grid">
+          {confidence.components.map(c => <div className="confidence-card" key={c.name}><div className="confidence-head"><strong>{c.name}</strong><span>{c.score}%</span></div><div className="confidence-track"><div className="confidence-fill" style={{width:`${c.score}%`}} /></div><small>{c.detail}</small></div>)}
+        </div>
+        {confidence.issues.length>0 ? <Callout tone={confidence.score>=70?'warning':'danger'} title={`Data confidence: ${confidence.grade}`}>{confidence.issues.slice(0,6).join(' · ')}</Callout> : <Callout tone="success" title={`Data confidence: ${confidence.grade}`}>No material quality issues were detected by the current rules.</Callout>}
       </div>
 
       {health.missingFields.length > 0 && (

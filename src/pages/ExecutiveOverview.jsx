@@ -4,12 +4,13 @@ import KpiCard from '../components/KpiCard.jsx';
 import Callout from '../components/Callout.jsx';
 import TrendChart from '../components/TrendChart.jsx';
 import {
-  sumSalesValue, sumStockQty, stockValue, oosPct, avgNOD, marginPctBlended,
+  sumSalesValue, sumStockQty, stockValue, oosPct, avgNOD, marginPctBlended, isOOS, calcNOD,
   achievementPct, growthPct, applyFilters, topN, formatCurrency, formatPct, formatGrowthPct,
 } from '../data/metrics.js';
+import { THRESHOLDS } from '../data/schema.js';
 
 export default function ExecutiveOverview() {
-  const { filteredRecords, allRecords, filters, months } = useFilters();
+  const { filteredRecords, allRecords, filters, months, monthlyQtyIndex } = useFilters();
 
   const growth = growthPct(allRecords, filters);
   const achievement = achievementPct(filteredRecords);
@@ -30,11 +31,12 @@ export default function ExecutiveOverview() {
   const growthDrivers = useMemo(() => topN(filteredRecords, 'salesValue', 'chainName', 3), [filteredRecords]);
   const growthDrags = useMemo(() => topN(filteredRecords, 'salesValue', 'chainName', 3, false), [filteredRecords]);
 
-  const oosCount = filteredRecords.filter((r) => r.stockQty <= 0 && r.listed).length;
-  const excessCount = filteredRecords.filter((r) => {
-    const dailyRate = r.salesQty / 30;
-    return dailyRate > 0 && r.stockQty / dailyRate > 60;
-  }).length;
+  // Both counts use the same standardized formulas as every other page
+  // (isOOS / calcNOD with the trailing-3-month index) — this used to be a
+  // hand-rolled single-month rate here, which could silently disagree with
+  // the Avg NOD KPI two rows up on this very page.
+  const oosCount = filteredRecords.filter(isOOS).length;
+  const excessCount = filteredRecords.filter((r) => calcNOD(r, monthlyQtyIndex) > THRESHOLDS.NOD_HIGH).length;
 
   return (
     <div className="page">

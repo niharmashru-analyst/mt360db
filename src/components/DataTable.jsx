@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 
 // columns: [{ key, label, format?: fn, align?: 'right' }]
-export default function DataTable({ columns, rows, defaultSortKey, defaultSortDesc = true, pageSize = 15 }) {
+export default function DataTable({ columns, rows, defaultSortKey, defaultSortDesc = true, pageSize = 15, onRowClick }) {
   const [sortKey, setSortKey] = useState(defaultSortKey || columns[0]?.key);
   const [sortDesc, setSortDesc] = useState(defaultSortDesc);
   const [page, setPage] = useState(0);
@@ -48,7 +48,7 @@ export default function DataTable({ columns, rows, defaultSortKey, defaultSortDe
         </thead>
         <tbody>
           {pageRows.map((row, i) => (
-            <tr key={row.key || row.id || i}>
+            <tr key={row.key || row.id || i} onClick={onRowClick ? () => onRowClick(row) : undefined} className={onRowClick ? 'clickable-row' : undefined}>
               {columns.map((col) => (
                 <td key={col.key} className={col.align === 'right' ? 'align-right' : ''}>
                   {col.format ? col.format(row[col.key], row) : row[col.key]}

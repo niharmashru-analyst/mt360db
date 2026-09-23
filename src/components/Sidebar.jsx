@@ -5,7 +5,7 @@ import { useFilters } from '../context/FilterContext.jsx';
 const NAV_GROUPS = [
   {
     label: null,
-    items: [{ path: '/', label: '🏠 Executive 360', end: true }],
+    items: [{ path: '/', label: '🧠 Decision Center', end: true }, { path: '/executive', label: '🏠 Executive 360' }, { path: '/analyst', label: '🤖 Analyst' }, { path: '/root-cause', label: '🔍 Root Cause Analytics' }],
   },
   {
     label: 'PERFORMANCE',
@@ -41,6 +41,7 @@ const NAV_GROUPS = [
     label: null,
     items: [
       { path: '/action-center', label: '⚡ Action Center' },
+      { path: '/decision-history', label: '🧾 Decision History' },
       { path: '/data-health', label: '🩺 Data Health' },
     ],
   },

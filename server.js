@@ -288,7 +288,9 @@ app.get('/api/data', async (req, res) => {
   }
 });
 
-app.get('/api/refresh', async (req, res) => {
+// POST, not GET — this has a side effect (clears the cache), so it shouldn't
+// be triggerable by a plain link click, a prefetch, or a crawler.
+app.post('/api/refresh', async (req, res) => {
   cache = { data: null, fetchedAt: 0, diagnostics: null };
   res.json({ ok: true });
 });

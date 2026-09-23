@@ -22,6 +22,10 @@ import OpportunityEngine from './pages/OpportunityEngine.jsx';
 import GrowthSimulator from './pages/GrowthSimulator.jsx';
 import ActionCenter from './pages/ActionCenter.jsx';
 import DataHealth from './pages/DataHealth.jsx';
+import DecisionCenter from './pages/DecisionCenter.jsx';
+import DecisionHistory from './pages/DecisionHistory.jsx';
+import Analyst from './pages/Analyst.jsx';
+import RootCauseAnalytics from './pages/RootCauseAnalytics.jsx';
 
 export default function App() {
   return (
@@ -33,7 +37,8 @@ export default function App() {
             <TopFilterBar />
             <div className="page-content">
               <Routes>
-                <Route path="/" element={<ExecutiveOverview />} />
+                <Route path="/" element={<DecisionCenter />} />
+                <Route path="/executive" element={<ExecutiveOverview />} />
                 <Route path="/sales" element={<SalesAnalysis />} />
                 <Route path="/retailer" element={<RetailerProfile />} />
                 <Route path="/geography" element={<Geography />} />
@@ -50,6 +55,9 @@ export default function App() {
                 <Route path="/opportunity-engine" element={<OpportunityEngine />} />
                 <Route path="/growth-simulator" element={<GrowthSimulator />} />
                 <Route path="/action-center" element={<ActionCenter />} />
+                <Route path="/decision-history" element={<DecisionHistory />} />
+                <Route path="/analyst" element={<Analyst />} />
+                <Route path="/root-cause" element={<RootCauseAnalytics />} />
                 <Route path="/data-health" element={<DataHealth />} />
               </Routes>
             </div>

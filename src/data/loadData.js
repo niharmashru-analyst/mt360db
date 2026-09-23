@@ -67,7 +67,7 @@ export async function loadData({ force = false } = {}) {
 export async function refreshData() {
   cachedData = null;
   try {
-    await fetch('/api/refresh');
+    await fetch('/api/refresh', { method: 'POST' });
   } catch {
     // if /api/refresh isn't reachable (e.g. dev mode with mock data), just
     // clear the local cache and let the next loadData() call re-fetch/regenerate
