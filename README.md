@@ -68,6 +68,47 @@ and `APP_PASSWORD` in the dashboard — never commit these.
 `src/data/schema.js` → `THRESHOLDS`: `NOD_LOW`/`NOD_HIGH` (Low/Excess Stock cutoffs),
 `VARIANCE_ALERT_PCT`, `HIGH_DISCOUNT_PCT`. Change once here, every page updates.
 
+## New: Decision Intelligence home + two-mode navigation
+
+The app now opens on `/` — a new **Decision Intelligence** briefing page — instead
+of the old flat sidebar of 18 peer pages. The sidebar has a two-way switch at the
+top: **Decision Intelligence** (the briefing, Decision Center, Root Cause,
+Growth Simulator, Action Center, Decision History, Analyst) and **Data**
+(the original 16 chart/table pages, unchanged). Switching modes is one click;
+following a link (e.g. "Switch to Data view") flips the sidebar automatically
+because the active mode is derived from the current route, not just a toggle
+you have to remember to flip yourself.
+
+The Decision Intelligence home page is built to be read once, not explored:
+
+- **A 3–4 sentence briefing**, not a dashboard, written from the same
+  `buildDecisionSet()` / `buildRootCauses()` numbers every other page uses —
+  it renders a deterministic, template-based version instantly
+  (`src/data/briefing.js`), then swaps in an LLM-rewritten version if
+  `ANTHROPIC_API_KEY` is set on the server (`POST /api/briefing`). If the key
+  is missing, or the API call fails for any reason, the page silently keeps
+  the template — this was tested end-to-end with no key, with an invalid key,
+  and with a valid request shape, and the page never breaks or blanks out
+  either way. The LLM is only ever given pre-computed numbers, never raw
+  records, so it cannot introduce a figure that isn't already verified.
+- **Personalization**: a role dropdown (Sales Head / Category Head / Regional
+  Manager / All areas) sets a sensible default set of focus-area tags
+  (Availability, Inventory, Margin & promo, Distribution, Target recovery,
+  Stock variance), which the person can further tune and save as their own
+  view (`mt360_di_view_v1` in `localStorage`) — the briefing, trend, and hero
+  decision all re-scope to the selected tags.
+- **A trend line, not just a snapshot** — total opportunity vs the prior
+  month, filtered by the same tags, so the page tells you whether things are
+  improving, not just what's true today.
+- **One hero decision, fully visible, no click required** (why, impact,
+  recommendation, confidence, Accept/Modify/Reject), 2 secondary items below
+  it, and everything else one click away in Decision Center — deep-linked via
+  `?focus=<id>` so "Modify" or "Reject" from the briefing lands on the exact
+  item in Decision Center instead of making the person find it again in an
+  80-row table.
+- **An honest "time saved" estimate**, clearly labeled as an estimate, not a
+  measured number.
+
 ## Fixed since the last pilot review
 
 - **NOD formula standardization is now actually complete everywhere.** `ActionCenter`,
@@ -105,6 +146,25 @@ and `APP_PASSWORD` in the dashboard — never commit these.
 
 ## Known limitations / what's queued next
 
+- **The "/" entity picker is not yet built.** The intent — type `/`, search
+  and select any chain, store, SKU, category, brand or pareto tier as a fast
+  alternative to the single-select dropdowns — is the same underlying need as
+  the filter overhaul below, and should be built as one piece of work:
+  a token/chip-based multi-entity search feeding the existing shared filter
+  state, not a separate feature bolted onto just one page.
+- **Confidence scores don't yet learn from outcomes.** Decision History
+  records expected vs. actual impact, but nothing feeds that back into the
+  engine's confidence heuristic yet — it's a static number today. Closing
+  that loop (e.g. "of the last 20 Availability recommendations, X% matched
+  the outcome") is the highest-value near-term addition for proving the
+  system actually gets smarter, not just repeats the same guess.
+- **No recurring-issue memory.** Each month's decisions are computed fresh;
+  the engine can't yet say "this is the third month this chain has been
+  flagged for the same issue," which is one of the highest-trust signals a
+  system like this can surface.
+- **The briefing is read-only, single-user, and pull-based.** No push
+  notification (email/WhatsApp) yet, no per-user identity (still one shared
+  `APP_PASSWORD`), and a manager still has to open the app to see it.
 - **The EKA-style filter and table overhaul is not yet ported.** This is the biggest
   remaining piece: multi-select checkbox filters with search and shift-click ranges,
   a column picker with drag-to-reorder, a persisted Qty/Value toggle, click-through

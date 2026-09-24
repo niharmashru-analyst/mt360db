@@ -1,4 +1,5 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useFilters } from '../context/FilterContext.jsx';
 import KpiCard from '../components/KpiCard.jsx';
 import DataTable from '../components/DataTable.jsx';
@@ -13,12 +14,25 @@ function writeLog(x){localStorage.setItem(STORAGE_KEY,JSON.stringify(x))}
 
 export default function DecisionCenter(){
   const { filteredRecords, allRecords, listingMatrix, monthlyQtyIndex, filters } = useFilters();
+  const [searchParams] = useSearchParams();
   const [selected, setSelected] = useState(null);
   const [owner, setOwner] = useState('Sales Manager');
   const [deadline, setDeadline] = useState('');
   const [decisionStatus, setDecisionStatus] = useState('open');
   const [logTick,setLogTick]=useState(0);
   const decisions=useMemo(()=>buildDecisionSet(filteredRecords,allRecords,listingMatrix,filters.month,monthlyQtyIndex),[filteredRecords,allRecords,listingMatrix,filters.month,monthlyQtyIndex]);
+
+  // Deep link from Decision Intelligence home (?focus=<id>) — lets "Modify"
+  // or "Reject" on the home page's hero card land directly on that item here
+  // instead of making the person hunt for it again in an 80-row table.
+  useEffect(() => {
+    const focusId = searchParams.get('focus');
+    if (focusId) {
+      const match = decisions.find((d) => d.id === focusId);
+      if (match) { setSelected(match); setDecisionStatus('open'); }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams, decisions]);
   const causes=useMemo(()=>buildRootCauses(filteredRecords,allRecords,filters),[filteredRecords,allRecords,filters]);
   const confidence=useMemo(()=>buildDataConfidence(allRecords),[allRecords]);
   const log=useMemo(()=>readLog(),[logTick]);

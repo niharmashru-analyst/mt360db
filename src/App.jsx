@@ -26,6 +26,7 @@ import DecisionCenter from './pages/DecisionCenter.jsx';
 import DecisionHistory from './pages/DecisionHistory.jsx';
 import Analyst from './pages/Analyst.jsx';
 import RootCauseAnalytics from './pages/RootCauseAnalytics.jsx';
+import DecisionIntelligenceHome from './pages/DecisionIntelligenceHome.jsx';
 
 export default function App() {
   return (
@@ -37,7 +38,8 @@ export default function App() {
             <TopFilterBar />
             <div className="page-content">
               <Routes>
-                <Route path="/" element={<DecisionCenter />} />
+                <Route path="/" element={<DecisionIntelligenceHome />} />
+                <Route path="/decision-center" element={<DecisionCenter />} />
                 <Route path="/executive" element={<ExecutiveOverview />} />
                 <Route path="/sales" element={<SalesAnalysis />} />
                 <Route path="/retailer" element={<RetailerProfile />} />

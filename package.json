@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "description": "Modern Trade 360 Intelligence Dashboard - Cosmetics",
   "type": "module",
+  "engines": { "node": ">=18" },
   "scripts": {
     "dev": "vite",
     "build": "vite build",

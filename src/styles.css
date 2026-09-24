@@ -225,5 +225,55 @@ body {
 /* ---------- Growth Simulator lever hints ---------- */
 .lever-hint { color: var(--text-muted); font-weight: 400; font-size: 0.8rem; }
 
+/* ---------- Decision Intelligence Home ---------- */
+.di-home-header { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; margin-bottom: 16px; }
+.di-role-select { display: flex; align-items: center; gap: 8px; }
+.di-role-select select { padding: 6px 10px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface); font-size: 0.85rem; }
+.di-week-label { font-size: 0.78rem; color: var(--text-muted); }
+
+.briefing-card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 22px 26px; margin-bottom: 18px; }
+.briefing-label { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; flex-wrap: wrap; gap: 6px; }
+.briefing-label > span:first-child { font-size: 11px; font-weight: 800; letter-spacing: 0.06em; color: var(--text-muted); text-transform: uppercase; }
+.briefing-source { font-size: 11px; color: var(--text-muted); }
+.briefing-source.enhanced { color: var(--primary); font-weight: 700; }
+.briefing-text { font-size: 17px; line-height: 1.7; color: var(--text); }
+.briefing-text strong { font-weight: 700; }
+.briefing-actions { display: flex; gap: 8px; margin-top: 14px; flex-wrap: wrap; }
+
+.trend-up { color: var(--danger); }
+.trend-down { color: var(--success); }
+.trend-flat { color: var(--text-muted); }
+
+.tag-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 6px 0 20px; }
+.chip.active { background: var(--primary); color: #fff; border-color: var(--primary); }
+
+.hero-card { background: var(--surface); border: 2px solid var(--danger); border-radius: 14px; padding: 20px 24px; margin-bottom: 14px; }
+.hero-card.priority-high-border { border-color: var(--warning); }
+.hero-card.priority-medium-border { border-color: var(--border); }
+.hero-top { display: flex; justify-content: space-between; gap: 14px; }
+.hero-impact { text-align: right; white-space: nowrap; }
+.hero-impact .label { font-size: 12px; color: var(--text-muted); }
+.hero-impact .value { font-size: 22px; font-weight: 800; }
+.hero-mid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin: 14px 0; padding: 12px 0; border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); font-size: 14px; line-height: 1.5; }
+.hero-mid small { display: block; font-size: 11px; font-weight: 800; color: var(--text-muted); letter-spacing: 0.05em; margin-bottom: 4px; }
+.hero-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+
+.secondary-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 18px; }
+.secondary-card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px; }
+.secondary-card-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+.di-footer-link { font-size: 12px; color: var(--text-muted); margin-top: 20px; padding-top: 12px; border-top: 1px solid var(--border); }
+.di-footer-link a { color: var(--primary); text-decoration: none; }
+.di-footer-link a:hover { text-decoration: underline; }
+
+@media (max-width: 900px) {
+  .hero-mid, .secondary-grid { grid-template-columns: 1fr; }
+  .di-home-header { flex-direction: column; align-items: flex-start; }
+}
+
+/* ---------- Sidebar mode switcher ---------- */
+.mode-switch { display: flex; margin: 0 20px 16px; background: #1f2937; border-radius: 8px; padding: 3px; }
+.mode-switch button { flex: 1; background: none; border: none; color: #9ca3af; padding: 7px 4px; font-size: 0.68rem; font-weight: 700; border-radius: 6px; cursor: pointer; letter-spacing: 0.02em; }
+.mode-switch button.active { background: var(--sidebar-active); color: #fff; }
+
 /* Decision Intelligence quality layer */
 .confidence-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-top:16px}.confidence-card{padding:14px;border:1px solid var(--border,#e5e7eb);border-radius:12px;background:var(--card,#fff)}.confidence-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}.confidence-track{height:7px;border-radius:999px;background:#edf0f3;overflow:hidden;margin-bottom:8px}.confidence-fill{height:100%;border-radius:999px;background:currentColor}.confidence-card small{color:#6b7280;line-height:1.35}.di-badge{font-size:11px;font-weight:700;letter-spacing:.08em;padding:7px 10px;border-radius:999px;background:#eef7f5;color:#087f6d;white-space:nowrap}@media(max-width:900px){.confidence-grid{grid-template-columns:1fr 1fr}}@media(max-width:600px){.confidence-grid{grid-template-columns:1fr}.di-badge{display:none}}

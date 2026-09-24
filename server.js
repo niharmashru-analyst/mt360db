@@ -308,6 +308,82 @@ app.get('/api/health', async (req, res) => {
   }
 });
 
+// ============================================================================
+// /api/briefing — optional LLM rewrite of the Decision Intelligence home
+// briefing. The client always computes and shows a deterministic, template-
+// based briefing itself (src/data/briefing.js) using numbers from the same
+// decision engine every other page uses — that never depends on this route.
+// This endpoint's only job is to ask an LLM to rewrite those SAME numbers
+// into something that reads more naturally. It never receives raw sales
+// data, never invents a number, and any failure here (no key, network
+// error, bad response) must fall straight back to the client's template —
+// the page must never break or go blank because of this.
+// ============================================================================
+const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
+const ANTHROPIC_MODEL = process.env.ANTHROPIC_MODEL || 'claude-sonnet-5';
+
+app.post('/api/briefing', async (req, res) => {
+  if (!ANTHROPIC_API_KEY) {
+    // Not configured — tell the client plainly so it keeps its own template,
+    // rather than making it guess from an error response.
+    return res.json({ enhanced: false, reason: 'no_api_key' });
+  }
+  try {
+    const { role, tags, top, secondary, totalOpportunity, criticalCount, openCount, trendPct } = req.body || {};
+    if (!top || typeof top.impact !== 'number') {
+      return res.status(400).json({ enhanced: false, reason: 'missing_summary' });
+    }
+
+    const facts = { role, focusAreas: tags, topIssue: top, alsoWorthAttention: secondary, totalOpportunity, criticalCount, openCount, trendPctVsLastMonth: trendPct };
+
+    const system = [
+      'You write a 3-4 sentence weekly business briefing for a retail sales manager.',
+      'You will be given a JSON object of pre-computed facts and numbers.',
+      'Rules, no exceptions:',
+      '- Use ONLY the numbers, names and facts given in the JSON. Never invent, estimate, round differently, or add any SKU, chain, store or figure not present.',
+      '- Do not add caveats, disclaimers, or mention that you are an AI.',
+      '- Plain, direct business English. Active voice. No corporate filler ("leverage", "synergy", "seamless").',
+      '- Bold the 2-3 most important numbers using **markdown** bold, nothing else in markdown.',
+      '- Output ONLY the briefing paragraph, no preamble, no headings, no quotes around it.',
+    ].join('\n');
+
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 12000);
+    let apiRes;
+    try {
+      apiRes = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': ANTHROPIC_API_KEY,
+          'anthropic-version': '2023-06-01',
+        },
+        body: JSON.stringify({
+          model: ANTHROPIC_MODEL,
+          max_tokens: 300,
+          system,
+          messages: [{ role: 'user', content: JSON.stringify(facts) }],
+        }),
+        signal: controller.signal,
+      });
+    } finally {
+      clearTimeout(timeout);
+    }
+
+    if (!apiRes.ok) {
+      console.error('Anthropic API error:', apiRes.status, await apiRes.text().catch(() => ''));
+      return res.json({ enhanced: false, reason: 'api_error' });
+    }
+    const data = await apiRes.json();
+    const text = (data.content || []).filter((b) => b.type === 'text').map((b) => b.text).join('\n').trim();
+    if (!text) return res.json({ enhanced: false, reason: 'empty_response' });
+    res.json({ enhanced: true, text });
+  } catch (err) {
+    console.error('Error in /api/briefing:', err.message);
+    res.json({ enhanced: false, reason: 'exception' });
+  }
+});
+
 app.use(express.static(path.join(__dirname, 'dist')));
 
 app.get('*', (req, res) => {
