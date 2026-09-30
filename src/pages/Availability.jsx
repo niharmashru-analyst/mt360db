@@ -4,13 +4,12 @@ import KpiCard from '../components/KpiCard.jsx';
 import DataTable from '../components/DataTable.jsx';
 import Callout from '../components/Callout.jsx';
 import {
-  isOOS, oosPct, buildAvgMonthlySalesByKey, estimateSalesAtRisk, avgNOD, calcNOD,
+  isOOS, oosPct, buildAvgMonthlySalesByKey, estimateSalesAtRisk, avgNOD,
   formatCurrency, formatPct, formatNumber,
 } from '../data/metrics.js';
-import { THRESHOLDS } from '../data/schema.js';
 
 export default function Availability() {
-  const { filteredRecords, allRecords, filters, monthlyQtyIndex } = useFilters();
+  const { filteredRecords, allRecords, filters } = useFilters();
 
   const avgSalesMap = useMemo(() => buildAvgMonthlySalesByKey(allRecords), [allRecords]);
 
@@ -33,10 +32,10 @@ export default function Availability() {
   }, [oosRecords, avgSalesMap]);
 
   const topPareto = priorityList.filter((r) => r.pareto === 'Top 10' || r.pareto === 'Top 25');
-  // Standardized trailing-3-month NOD rule (same as Inventory, Executive
-  // Overview, Decision Center) — this page previously used a single-month
-  // rate that could disagree with the "Avg NOD" KPI shown two cards to its left.
-  const excessCount = filteredRecords.filter((r) => calcNOD(r, monthlyQtyIndex) > THRESHOLDS.NOD_HIGH).length;
+  const excessCount = filteredRecords.filter((r) => {
+    const rate = r.salesQty / 30;
+    return rate > 0 && r.stockQty / rate > 60;
+  }).length;
 
   return (
     <div className="page">
