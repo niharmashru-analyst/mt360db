@@ -4,44 +4,32 @@ import { useFilters } from '../context/FilterContext.jsx';
 
 const NAV_GROUPS = [
   {
-    label: null,
-    items: [{ path: '/', label: '🏠 Executive 360', end: true }, { path: '/business-review', label: '📋 Management Review' }],
-  },
-  {
-    label: 'PERFORMANCE',
+    label: 'INTELLIGENCE',
     items: [
+      { path: '/', label: '🏠 Executive 360', end: true },
       { path: '/sales', label: '📈 Sales Analysis' },
       { path: '/retailer', label: '🏪 Retailer 360' },
       { path: '/geography', label: '🗺 Geography 360' },
       { path: '/store', label: '🏬 Store 360' },
       { path: '/sku', label: '🎯 SKU 360' },
-    ],
-  },
-  {
-    label: 'DIAGNOSTICS',
-    items: [
       { path: '/availability', label: '🚨 Availability / OOS' },
       { path: '/inventory', label: '📦 Inventory 360' },
       { path: '/distribution', label: '📦 Distribution 360' },
       { path: '/assortment', label: '🧴 Assortment Analytics' },
       { path: '/pricing', label: '💰 Pricing & Promotion' },
       { path: '/variance', label: '⚠️ Variance Analysis' },
-    ],
-  },
-  {
-    label: 'OPPORTUNITY',
-    items: [
       { path: '/pareto', label: '🔥 Pareto Analysis' },
       { path: '/store-matrix', label: '🏆 Store Performance Matrix' },
       { path: '/opportunity-engine', label: '🧩 SKU × Store Opportunity' },
       { path: '/growth-simulator', label: '🚀 Growth Simulator' },
+      { path: '/action-center', label: '⚡ Action Center' },
+      { path: '/data-health', label: '🩺 Data Health' },
     ],
   },
   {
-    label: null,
+    label: 'BUSINESS DASHBOARD',
     items: [
-      { path: '/action-center', label: '⚡ Action Center' },
-      { path: '/data-health', label: '🩺 Data Health' },
+      { path: '/business-review', label: '📋 MT Management Review' },
     ],
   },
 ];

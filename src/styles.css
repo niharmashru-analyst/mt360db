@@ -255,3 +255,14 @@ body {
   .review-hero { align-items:flex-start; flex-direction:column; }
   .review-jumpbar { position:relative; }
 }
+
+/* Clear separation between the two MT360 experiences */
+.sidebar-group-label {
+  margin-top: 10px;
+  padding-top: 12px;
+  border-top: 1px solid #1f2937;
+}
+.sidebar-group:first-of-type .sidebar-group-label {
+  margin-top: 0;
+  border-top: 0;
+}
