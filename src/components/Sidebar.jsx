@@ -4,6 +4,10 @@ import { useFilters } from '../context/FilterContext.jsx';
 
 const INTELLIGENCE_GROUPS = [
   {
+    label: 'DATA SCIENCE',
+    items: [{ path: '/intelligence', label: '🧠 Intelligence Hub' }],
+  },
+  {
     label: 'PERFORMANCE',
     items: [
       { path: '/', label: '🏠 Executive 360', end: true },

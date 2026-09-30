@@ -5,11 +5,11 @@ import Callout from '../components/Callout.jsx';
 import TrendChart from '../components/TrendChart.jsx';
 import {
   sumSalesValue, sumStockQty, stockValue, oosPct, avgNOD, marginPctBlended,
-  achievementPct, growthPct, applyFilters, topN, formatCurrency, formatPct, formatGrowthPct,
+  achievementPct, growthPct, applyFilters, stockHealthFlag, topN, formatCurrency, formatPct, formatGrowthPct,
 } from '../data/metrics.js';
 
 export default function ExecutiveOverview() {
-  const { filteredRecords, allRecords, filters, months } = useFilters();
+  const { filteredRecords, allRecords, filters, months, monthlyQtyIndex } = useFilters();
 
   const growth = growthPct(allRecords, filters);
   const achievement = achievementPct(filteredRecords);
@@ -32,8 +32,8 @@ export default function ExecutiveOverview() {
 
   const oosCount = filteredRecords.filter((r) => r.stockQty <= 0 && r.listed).length;
   const excessCount = filteredRecords.filter((r) => {
-    const dailyRate = r.salesQty / 30;
-    return dailyRate > 0 && r.stockQty / dailyRate > 60;
+    const h = stockHealthFlag(r, monthlyQtyIndex); // same trailing-3M NOD rule as every other page
+    return h === 'Excess' || h === 'Dead';
   }).length;
 
   return (

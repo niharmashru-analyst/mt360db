@@ -107,3 +107,23 @@ render.yaml                — Render deploy config
 .env.example
 ```
 
+
+## v2 — Intelligence layer
+
+New page **🧠 Intelligence Hub** (`/intelligence`), powered by `src/data/analytics.js`:
+
+- **Forecast** — damped Holt-Winters vs seasonal-naive vs recent-average, chosen by rolling-origin
+  backtest (no model sees its test data); 80% intervals from backtest error; MAPE shown.
+- **Growth bridge** — exact YoY decomposition: new listings, lost listings, volume, price. Also
+  like-for-like growth (only SKU×stores live in both years).
+- **Anomaly radar** — robust z-score (median/MAD) of each entity's log-YoY vs its own history.
+- **ABC-XYZ** — revenue value × demand predictability (CV), trailing 12 months.
+- **Stock-out risk** — trailing-3M demand vs replenishment lead time, with suggested order qty
+  and sales at risk. Tune `CFG` at the top of `analytics.js`.
+
+Fixes: `discountPct` is now volume-weighted; Executive 360 excess count uses the standard NOD rule.
+
+### v2.1 additions
+- **Opportunity model** (`opportunityModel`): expected-vs-actual per SKU×store, plus distribution white space.
+- **Store segments** (`clusterStores`): k-means on sales, OOS, margin, assortment depth; each segment has a playbook.
+- **Promo elasticity** (`promoElasticity`): fixed-effects log-log regression, with a significance guard.

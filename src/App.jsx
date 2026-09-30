@@ -23,6 +23,7 @@ import GrowthSimulator from './pages/GrowthSimulator.jsx';
 import ActionCenter from './pages/ActionCenter.jsx';
 import DataHealth from './pages/DataHealth.jsx';
 import BusinessReview from './pages/BusinessReview.jsx';
+import IntelligenceHub from './pages/IntelligenceHub.jsx';
 
 export default function App() {
   return (
@@ -35,6 +36,7 @@ export default function App() {
             <div className="page-content">
               <Routes>
                 <Route path="/" element={<ExecutiveOverview />} />
+                <Route path="/intelligence" element={<IntelligenceHub />} />
                 <Route path="/business-review" element={<BusinessReview />} />
                 <Route path="/sales" element={<SalesAnalysis />} />
                 <Route path="/retailer" element={<RetailerProfile />} />

@@ -54,10 +54,10 @@ export function realizedASP(records) {
 }
 
 export function discountPct(records) {
-  if (records.length === 0) return 0;
-  const avgMrp = sum(records, 'mrp') / records.length;
-  const asp = realizedASP(records);
-  return avgMrp > 0 ? ((avgMrp - asp) / avgMrp) * 100 : 0;
+  // Volume-weighted: realised value vs the same units at MRP (a simple average
+  // of MRP across rows let cheap low-volume SKUs distort the discount).
+  const listValue = records.reduce((a, r) => a + r.salesQty * r.mrp, 0);
+  return listValue > 0 ? (1 - sumSalesValue(records) / listValue) * 100 : 0;
 }
 
 export function growthPct(allRecords, filters) {
