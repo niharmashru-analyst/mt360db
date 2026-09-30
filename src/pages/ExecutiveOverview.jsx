@@ -3,9 +3,10 @@ import { useFilters } from '../context/FilterContext.jsx';
 import KpiCard from '../components/KpiCard.jsx';
 import Callout from '../components/Callout.jsx';
 import TrendChart from '../components/TrendChart.jsx';
+import { TrendCombo, TreemapChart, Heatmap } from '../components/AdvancedCharts.jsx';
 import {
   sumSalesValue, sumStockQty, stockValue, oosPct, avgNOD, marginPctBlended,
-  achievementPct, growthPct, applyFilters, salesByMonth, stockHealthFlag, topN, formatCurrency, formatPct, formatGrowthPct,
+  achievementPct, growthPct, applyFilters, salesByMonth, stockHealthFlag, matchesFilters, getPriorYearMonth, topN, formatCurrency, formatPct, formatGrowthPct,
 } from '../data/metrics.js';
 
 export default function ExecutiveOverview() {
@@ -20,9 +21,34 @@ export default function ExecutiveOverview() {
 
   // trend across last 12 months (ignoring month filter, respecting other filters)
   const trendData = useMemo(() => {
-    const last12 = months.slice(-12);
-    const totals = salesByMonth(allRecords, filters, last12);
-    return last12.map((m, i) => ({ label: m.slice(2), sales: Math.round(totals[i] / 100000) }));
+    const win = months.filter((m) => m <= (filters.month || months[months.length - 1])).slice(-12);
+    const cur = salesByMonth(allRecords, filters, win);
+    const ly = salesByMonth(allRecords, filters, win.map(getPriorYearMonth));
+    const tgt = salesByMonth(allRecords, filters, win, 'targetValue');
+    return win.map((m, i) => ({
+      label: m.slice(2), current: cur[i], ly: ly[i] || null, target: tgt[i] || null,
+      yoy: ly[i] > 0 ? (cur[i] / ly[i] - 1) * 100 : null,
+    }));
+  }, [months, allRecords, filters]);
+
+  // Chain × month YoY, one pass (ignores the chain filter so every chain is visible).
+  const chainView = useMemo(() => {
+    const win = months.filter((m) => m <= (filters.month || months[months.length - 1])).slice(-6);
+    const want = new Set([...win, ...win.map(getPriorYearMonth)]);
+    const f = { ...filters, chainName: '' };
+    const map = {};
+    allRecords.forEach((r) => {
+      if (!want.has(r.month) || !matchesFilters(r, f, true)) return;
+      const o = (map[r.chainName] ||= {});
+      o[r.month] = (o[r.month] || 0) + r.salesValue;
+    });
+    const chains = Object.keys(map);
+    const growth = (c, m) => { const l = map[c][getPriorYearMonth(m)]; return l > 0 ? ((map[c][m] || 0) / l - 1) * 100 : null; };
+    const last = win[win.length - 1];
+    return {
+      win, chains, matrix: chains.map((c) => win.map((m) => growth(c, m))),
+      tree: chains.map((c) => ({ name: c, size: map[c][last] || 0, growth: growth(c, last) })).filter((t) => t.size > 0),
+    };
   }, [months, allRecords, filters]);
 
   const growthDrivers = useMemo(() => topN(filteredRecords, 'salesValue', 'chainName', 3), [filteredRecords]);
@@ -60,8 +86,19 @@ export default function ExecutiveOverview() {
       </Callout>
 
       <div className="section">
-        <h2>Sales Trend — Last 12 Months (₹ Lakh)</h2>
-        <TrendChart data={trendData} xKey="label" series={[{ dataKey: 'sales', name: 'Sales (₹L)', color: '#6366f1' }]} />
+        <h2>Sales vs Last Year, Target &amp; Growth — Last 12 Months</h2>
+        <div className="chart-panel"><TrendCombo data={trendData} /></div>
+      </div>
+
+      <div className="two-col">
+        <div className="section">
+          <h2>Chain Contribution — size = sales, colour = YoY</h2>
+          <div className="chart-panel"><TreemapChart data={chainView.tree} /></div>
+        </div>
+        <div className="section">
+          <h2>YoY Growth Heatmap — Chain × Month</h2>
+          <div className="chart-panel"><Heatmap rows={chainView.chains} cols={chainView.win.map((m) => m.slice(2))} matrix={chainView.matrix} /></div>
+        </div>
       </div>
 
       <div className="two-col">

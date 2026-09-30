@@ -56,12 +56,12 @@ export function discountPct(records) {
   return listValue > 0 ? (1 - sumSalesValue(records) / listValue) * 100 : 0;
 }
 
-export function salesByMonth(allRecords, filters, months = []) {
+export function salesByMonth(allRecords, filters, months = [], field = 'salesValue') {
   const wanted = new Set(months);
   const totals = Object.fromEntries(months.map((m) => [m, 0]));
   allRecords.forEach((r) => {
     if (!wanted.has(r.month) || !matchesFilters(r, filters, true)) return;
-    totals[r.month] += Number(r.salesValue || 0);
+    totals[r.month] += Number(r[field] || 0);
   });
   return months.map((month) => totals[month] || 0);
 }

@@ -7,6 +7,7 @@ import { useFilters } from '../context/FilterContext.jsx';
 import KpiCard from '../components/KpiCard.jsx';
 import DataTable from '../components/DataTable.jsx';
 import Callout from '../components/Callout.jsx';
+import { ParetoCurve, StoreBubble } from '../components/AdvancedCharts.jsx';
 import {
   formatCurrency, formatPct, formatGrowthPct, formatNumber, getPriorYearMonth,
 } from '../data/metrics.js';
@@ -30,6 +31,12 @@ export default function IntelligenceHub() {
   const abc = useMemo(() => abcXyz(allRecords, filters, months, month), [allRecords, filters, months, month]);
   const rep = useMemo(() => replenishmentRisk(filteredRecords, monthlyQtyIndex), [filteredRecords, monthlyQtyIndex]);
 
+  const pareto = useMemo(() => {
+    if (!abc) return [];
+    const tot = abc.rows.reduce((a, r) => a + r.sales, 0);
+    let c = 0;
+    return abc.rows.slice(0, 40).map((r) => { c += r.sales; return { name: r.sku, sales: r.sales, cum: (c / tot) * 100, abc: r.abc }; });
+  }, [abc]);
   const opp = useMemo(() => opportunityModel(filteredRecords), [filteredRecords]);
   const seg = useMemo(() => clusterStores(filteredRecords), [filteredRecords]);
   const elast = useMemo(() => promoElasticity(allRecords, filters), [allRecords, filters]);
@@ -248,6 +255,21 @@ export default function IntelligenceHub() {
           ]} />
           <p className="page-subtitle">Only |t| &gt; 2 with a negative sign is treated as real. Promo depth is rarely randomised, so treat this as directional.</p>
         </div>
+      </div>
+
+      <div className="section">
+        <h2>Revenue Concentration — Pareto curve (top 40 SKUs, coloured by ABC class)</h2>
+        <div className="chart-panel">
+          {pareto.length ? <ParetoCurve rows={pareto} /> : <Callout tone="info">No sales in the trailing 12 months.</Callout>}
+        </div>
+      </div>
+
+      <div className="section">
+        <h2>Store Map — sales vs availability (bubble = SKU depth; dashed = averages)</h2>
+        <div className="chart-panel">
+          {seg ? <StoreBubble rows={seg.rows} /> : <Callout tone="info">Need at least 8 stores in the current filter.</Callout>}
+        </div>
+        <p className="page-subtitle">Top-left = high sales, low OOS (healthy). Bottom-right = weak sales with stock-outs — fix availability first.</p>
       </div>
     </div>
   );
