@@ -1,7 +1,8 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { useFilters } from '../context/FilterContext.jsx';
 import DataTable from '../components/DataTable.jsx';
 import Callout from '../components/Callout.jsx';
+import IndiaPerformanceMap from '../components/IndiaPerformanceMap.jsx';
 import { groupBy, sumSalesValue, oosPct, formatCurrency, formatPct } from '../data/metrics.js';
 
 function heatColor(pct, invert = false) {
@@ -13,7 +14,7 @@ function heatColor(pct, invert = false) {
 }
 
 export default function Geography() {
-  const { filteredRecords, listingMatrix } = useFilters();
+  const { filteredRecords, listingMatrix, updateFilter } = useFilters();
 
   const byRegion = useMemo(() => {
     const groups = groupBy(filteredRecords, 'region');
@@ -45,12 +46,15 @@ export default function Geography() {
     })).sort((a, b) => b.sales - a.sales);
   }, [filteredRecords]);
 
+  const [selectedMapState, setSelectedMapState] = useState('');
   const lowestDistState = byState.length ? byState.reduce((min, s) => (s.oos > min.oos ? s : min), byState[0]) : null;
 
   return (
     <div className="page">
       <h1>Geography 360</h1>
       <p className="page-subtitle">Region → State → City drill-down</p>
+
+      <IndiaPerformanceMap records={filteredRecords} onStateSelect={(state) => { setSelectedMapState(state); updateFilter('state', state); }} />
 
       <div className="section">
         <h2>By Region</h2>
@@ -68,6 +72,8 @@ export default function Geography() {
           rows={byRegion}
         />
       </div>
+
+      {selectedMapState && <div className="map-context-bar"><strong>Map selection:</strong> {selectedMapState} <button type="button" onClick={() => { setSelectedMapState(''); updateFilter('state',''); }}>Clear</button></div>}
 
       <div className="two-col">
         <div className="section">

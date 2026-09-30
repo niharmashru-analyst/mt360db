@@ -339,3 +339,25 @@ body {
 .drill-full { margin-top:14px; }
 .drill-empty { padding:28px; text-align:center; border:1px dashed var(--border); border-radius:9px; color:var(--text-muted); font-size:.8rem; }
 @media (max-width: 900px) { .chart-toolbar, .drilldown-head { align-items:flex-start; flex-direction:column; } .drill-grid { grid-template-columns:1fr; } .table-columns-menu { right:4px; } }
+
+/* ---------- India performance map ---------- */
+.india-map-panel { margin: 18px 0 24px; padding: 14px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; }
+.india-map-head { display:flex; align-items:flex-start; justify-content:space-between; gap:16px; margin-bottom:10px; }
+.india-map-head h3 { margin:0; font-size:.95rem; }
+.india-map-head p { margin:3px 0 0; color:var(--text-muted); font-size:.72rem; }
+.india-map-layout { display:grid; grid-template-columns:minmax(0,1.6fr) minmax(220px,.7fr); gap:14px; align-items:stretch; }
+.india-map-svg-wrap { min-height:390px; border:1px solid var(--border); border-radius:10px; background:linear-gradient(180deg,#f8fafc,#fff); overflow:hidden; }
+.india-map-svg { display:block; width:100%; height:auto; min-height:390px; }
+.india-state-shape { cursor:pointer; transition:filter .15s ease, stroke-width .15s ease; }
+.india-state-shape:hover { filter:brightness(.94); stroke:#111827; stroke-width:1.7; }
+.india-map-details { border:1px solid var(--border); border-radius:10px; padding:14px; min-height:220px; background:var(--surface); }
+.map-selected-title { font-size:1.05rem; font-weight:800; margin-bottom:12px; }
+.map-detail-grid { display:grid; grid-template-columns:1fr 1fr; gap:9px; }
+.map-detail-grid div { border:1px solid var(--border); border-radius:8px; padding:9px; }
+.map-detail-grid span { display:block; color:var(--text-muted); font-size:.68rem; }
+.map-detail-grid strong { display:block; margin-top:3px; font-size:.86rem; }
+.map-empty-detail { color:var(--text-muted); font-size:.78rem; line-height:1.5; padding-top:15px; }
+.map-loading { padding:50px 10px; text-align:center; color:var(--text-muted); font-size:.8rem; }
+.map-context-bar { display:flex; align-items:center; gap:8px; margin:0 0 12px; padding:8px 11px; border:1px solid var(--border); border-radius:8px; background:var(--surface); font-size:.78rem; }
+.map-context-bar button { margin-left:auto; border:1px solid var(--border); background:transparent; border-radius:6px; padding:4px 8px; cursor:pointer; }
+@media (max-width: 900px) { .india-map-head { flex-direction:column; } .india-map-layout { grid-template-columns:1fr; } .india-map-svg-wrap, .india-map-svg { min-height:300px; } }

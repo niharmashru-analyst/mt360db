@@ -79,7 +79,7 @@ export default function BusinessReview() {
     return rows;
   }, [current, selectedChain, selectedSku, selectedOutlet]);
 
-  const drillSkuRows = useMemo(() => aggregate(drillRecords, 'skuCode').map(r => ({ ...r, sku: r.records[0]?.sku, category: r.records[0]?.category, pareto: r.records[0]?.pareto })).sort((a,b)=>b.sales-a.sales), [drillSkuShopGroups]);
+  const drillSkuRows = useMemo(() => aggregate(drillRecords, 'skuCode').map(r => ({ ...r, sku: r.records[0]?.sku, category: r.records[0]?.category, pareto: r.records[0]?.pareto })).sort((a,b)=>b.sales-a.sales), [drillRecords]);
   const drillShopRows = useMemo(() => aggregate(drillRecords, 'outletCode').map(r => ({ ...r, outlet: r.records[0]?.outletName, city: r.records[0]?.city, state: r.records[0]?.state })).sort((a,b)=>b.sales-a.sales), [drillRecords]);
   const drillCategoryRows = useMemo(() => aggregate(drillRecords, 'category').sort((a,b)=>b.sales-a.sales), [drillRecords]);
   const drillParetoRows = useMemo(() => aggregate(drillRecords, 'pareto').sort((a,b)=>b.sales-a.sales), [drillRecords]);
