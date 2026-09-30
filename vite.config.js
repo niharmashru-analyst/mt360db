@@ -5,8 +5,10 @@ export default defineConfig({
   plugins: [react()],
   build: {
     outDir: 'dist',
+    rollupOptions: {
+      // Charts are the heaviest dependency; keep them in their own cached chunk.
+      output: { manualChunks: { vendor: ['react', 'react-dom', 'react-router-dom'], charts: ['recharts'] } },
+    },
   },
-  server: {
-    port: 5173,
-  },
+  server: { port: 5173 },
 });

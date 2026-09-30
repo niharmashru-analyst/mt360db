@@ -14,7 +14,7 @@ function Select({ label, value, onChange, options, disabled }) {
 }
 
 export default function TopFilterBar() {
-  const { filters, updateFilter, resetFilters, months, filterOptions, refresh } = useFilters();
+  const { uiFilters: filters, updateFilter, resetFilters, months, filterOptions, refresh } = useFilters();
   const [refreshing, setRefreshing] = useState(false);
 
   if (!filterOptions) return null;

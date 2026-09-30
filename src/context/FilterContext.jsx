@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useMemo, useState, useCallback } from 'react';
+import React, { createContext, useContext, useEffect, useMemo, useState, useCallback, useDeferredValue } from 'react';
 import { loadData, refreshData, getDataSource } from '../data/loadData.js';
 import { applyFilters, buildMonthlyQtyIndex } from '../data/metrics.js';
 
@@ -40,6 +40,10 @@ export function FilterProvider({ children }) {
     category: '', subCategory: '', brand: '', sku: '', pareto: '',
   });
 
+  // Dropdowns bind to `filters` (updates instantly); pages and calculations read the
+  // deferred copy, so heavy recalculation never makes a dropdown lag or snap back.
+  const deferredFilters = useDeferredValue(filters);
+
   useEffect(() => {
     if (latestMonth && !filters.month) {
       setFilters((prev) => ({ ...prev, month: latestMonth }));
@@ -48,25 +52,28 @@ export function FilterProvider({ children }) {
   }, [latestMonth]);
 
   function updateFilter(field, value) {
-    setFilters((prev) => {
-      const next = { ...prev, [field]: value };
-      if (field === 'region') { next.state = ''; next.city = ''; }
-      if (field === 'state') { next.city = ''; }
-      if (field === 'category') { next.subCategory = ''; }
-      return next;
-    });
+    // Filter changes fan out to many analytical pages. Mark the update as a
+    // transition so React can keep the controls responsive while the heavier
+    // aggregations/recharts work is recalculated.
+          setFilters((prev) => {
+        const next = { ...prev, [field]: value };
+        if (field === 'region') { next.state = ''; next.city = ''; }
+        if (field === 'state') { next.city = ''; }
+        if (field === 'category') { next.subCategory = ''; }
+        return next;
+      });
   }
 
   function resetFilters() {
-    setFilters({
-      month: latestMonth || '', region: '', state: '', city: '', chainName: '',
-      chainType: '', category: '', subCategory: '', brand: '', sku: '', pareto: '',
-    });
+          setFilters({
+        month: latestMonth || '', region: '', state: '', city: '', chainName: '',
+        chainType: '', category: '', subCategory: '', brand: '', sku: '', pareto: '',
+      });
   }
 
   const filteredRecords = useMemo(
-    () => (data ? applyFilters(data.records, filters) : []),
-    [data, filters]
+    () => (data ? applyFilters(data.records, deferredFilters) : []),
+    [data, deferredFilters]
   );
 
   // Built once per data load — every NOD calculation across every page uses
@@ -151,7 +158,8 @@ export function FilterProvider({ children }) {
     skuMaster: data.skuMaster,
     listingMatrix: data.listingMatrix,
     dataSource: getDataSource(),
-    filters,
+    filters: deferredFilters,
+    uiFilters: filters,
     filterOptions,
     updateFilter,
     resetFilters,

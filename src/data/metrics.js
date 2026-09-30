@@ -8,21 +8,18 @@
 import { THRESHOLDS } from './schema.js';
 
 // ---- Filtering --------------------------------------------------------
+const FILTER_KEYS = ['region', 'state', 'city', 'chainName', 'chainType', 'category', 'subCategory', 'brand', 'sku', 'pareto'];
+
+// Single source of truth for filter matching — applyFilters and salesByMonth both use it,
+// so adding a filter (e.g. multi-select) means changing exactly one place.
+export function matchesFilters(r, f, skipMonth = false) {
+  if (!skipMonth && f.month && r.month !== f.month) return false;
+  for (const k of FILTER_KEYS) if (f[k] && r[k] !== f[k]) return false;
+  return true;
+}
+
 export function applyFilters(records, filters) {
-  return records.filter((r) => {
-    if (filters.month && r.month !== filters.month) return false;
-    if (filters.region && r.region !== filters.region) return false;
-    if (filters.state && r.state !== filters.state) return false;
-    if (filters.city && r.city !== filters.city) return false;
-    if (filters.chainName && r.chainName !== filters.chainName) return false;
-    if (filters.chainType && r.chainType !== filters.chainType) return false;
-    if (filters.category && r.category !== filters.category) return false;
-    if (filters.subCategory && r.subCategory !== filters.subCategory) return false;
-    if (filters.brand && r.brand !== filters.brand) return false;
-    if (filters.sku && r.sku !== filters.sku) return false;
-    if (filters.pareto && r.pareto !== filters.pareto) return false;
-    return true;
-  });
+  return records.filter((r) => matchesFilters(r, filters));
 }
 
 export function getPriorYearMonth(month) {
@@ -54,20 +51,25 @@ export function realizedASP(records) {
 }
 
 export function discountPct(records) {
-  // Volume-weighted: realised value vs the same units at MRP (a simple average
-  // of MRP across rows let cheap low-volume SKUs distort the discount).
+  // Volume-weighted: realised value vs the same units at MRP.
   const listValue = records.reduce((a, r) => a + r.salesQty * r.mrp, 0);
   return listValue > 0 ? (1 - sumSalesValue(records) / listValue) * 100 : 0;
 }
 
+export function salesByMonth(allRecords, filters, months = []) {
+  const wanted = new Set(months);
+  const totals = Object.fromEntries(months.map((m) => [m, 0]));
+  allRecords.forEach((r) => {
+    if (!wanted.has(r.month) || !matchesFilters(r, filters, true)) return;
+    totals[r.month] += Number(r.salesValue || 0);
+  });
+  return months.map((month) => totals[month] || 0);
+}
+
 export function growthPct(allRecords, filters) {
-  const current = applyFilters(allRecords, filters);
   const lyMonth = filters.month ? getPriorYearMonth(filters.month) : null;
   if (!lyMonth) return null;
-  const lyFilters = { ...filters, month: lyMonth };
-  const ly = applyFilters(allRecords, lyFilters);
-  const curVal = sumSalesValue(current);
-  const lyVal = sumSalesValue(ly);
+  const [curVal, lyVal] = salesByMonth(allRecords, filters, [filters.month, lyMonth]);
   if (lyVal === 0) return null;
   return ((curVal - lyVal) / lyVal) * 100;
 }

@@ -5,7 +5,7 @@ import Callout from '../components/Callout.jsx';
 import TrendChart from '../components/TrendChart.jsx';
 import {
   sumSalesValue, sumStockQty, stockValue, oosPct, avgNOD, marginPctBlended,
-  achievementPct, growthPct, applyFilters, stockHealthFlag, topN, formatCurrency, formatPct, formatGrowthPct,
+  achievementPct, growthPct, applyFilters, salesByMonth, stockHealthFlag, topN, formatCurrency, formatPct, formatGrowthPct,
 } from '../data/metrics.js';
 
 export default function ExecutiveOverview() {
@@ -21,10 +21,8 @@ export default function ExecutiveOverview() {
   // trend across last 12 months (ignoring month filter, respecting other filters)
   const trendData = useMemo(() => {
     const last12 = months.slice(-12);
-    return last12.map((m) => {
-      const recs = applyFilters(allRecords, { ...filters, month: m });
-      return { label: m.slice(2), sales: Math.round(sumSalesValue(recs) / 100000) };
-    });
+    const totals = salesByMonth(allRecords, filters, last12);
+    return last12.map((m, i) => ({ label: m.slice(2), sales: Math.round(totals[i] / 100000) }));
   }, [months, allRecords, filters]);
 
   const growthDrivers = useMemo(() => topN(filteredRecords, 'salesValue', 'chainName', 3), [filteredRecords]);

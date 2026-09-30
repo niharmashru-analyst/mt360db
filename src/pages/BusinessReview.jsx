@@ -8,7 +8,7 @@ import Callout from '../components/Callout.jsx';
 import {
   applyFilters, sum, sumSalesValue, sumSalesQty, sumTargetValue,
   achievementPct, marginPctBlended, avgNOD, formatCurrency, formatPct,
-  formatNumber, getPriorYearMonth, groupBy,
+  formatNumber, getPriorYearMonth, groupBy, salesByMonth,
 } from '../data/metrics.js';
 
 const money = v => formatCurrency(v);
@@ -65,11 +65,16 @@ export default function BusinessReview() {
   const nod = avgNOD(current, allRecords, { ...filters, month: currentMonth });
   const stockValue = sum(current.map(r => ({ stockValue: Number(r.stockQty ?? r.clStock ?? 0) * Number(r.mrp || 0) })), 'stockValue');
 
+  const lyChainSales = useMemo(() => {
+    const out = {};
+    ly.forEach(r => { out[r.chainName] = (out[r.chainName] || 0) + Number(r.salesValue || 0); });
+    return out;
+  }, [ly]);
+
   const chainRows = useMemo(() => aggregate(current, 'chainName').map(r => {
-    const lyChain = applyFilters(allRecords, { ...filters, month: getPriorYearMonth(currentMonth), chainName: r.key });
-    const lyChainSales = sumSalesValue(lyChain);
-    return { ...r, growth: lyChainSales > 0 ? (r.sales - lyChainSales) / lyChainSales * 100 : null, share: totalSales > 0 ? r.sales / totalSales * 100 : 0 };
-  }), [current, allRecords, filters, currentMonth, totalSales]);
+    const lyValue = lyChainSales[r.key] || 0;
+    return { ...r, growth: lyValue > 0 ? (r.sales - lyValue) / lyValue * 100 : null, share: totalSales > 0 ? r.sales / totalSales * 100 : 0 };
+  }), [current, lyChainSales, totalSales]);
 
   const drillRecords = useMemo(() => {
     let rows = current;
@@ -124,7 +129,13 @@ export default function BusinessReview() {
     plans.push({key:'90-growth',horizon:'61–90 Days',priority:'Scale',owner:'Sales + Trade Marketing',action:'Scale winning chains, categories and Pareto tiers; convert distribution and visibility gains into repeat sales.'});
     return plans;
   },[chainRows,current]);
-  const trend=useMemo(()=>months.slice(-6).map(m=>({label:m,current:Math.round(sumSalesValue(applyFilters(allRecords,{...filters,month:m}))/100000),ly:Math.round(sumSalesValue(applyFilters(allRecords,{...filters,month:getPriorYearMonth(m)}))/100000)})),[months,allRecords,filters]);
+  const trend=useMemo(()=>{
+    const currentMonths = months.slice(-6);
+    const lyMonths = currentMonths.map(getPriorYearMonth);
+    const currentTotals = salesByMonth(allRecords, filters, currentMonths);
+    const lyTotals = salesByMonth(allRecords, filters, lyMonths);
+    return currentMonths.map((m,i)=>({label:m,current:Math.round(currentTotals[i]/100000),ly:Math.round(lyTotals[i]/100000)}));
+  },[months,allRecords,filters]);
 
   const chainColumns=[
     {key:'key',label:'Chain'}, {key:'sales',label:'Sales',align:'right',format:money}, {key:'qty',label:'Qty',align:'right',format:qty},

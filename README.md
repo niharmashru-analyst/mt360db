@@ -108,22 +108,25 @@ render.yaml                — Render deploy config
 ```
 
 
-## v2 — Intelligence layer
+---
+## v3 — merged build (Intelligence + Performance)
 
-New page **🧠 Intelligence Hub** (`/intelligence`), powered by `src/data/analytics.js`:
+Combines the performance branch with the Intelligence layer.
 
-- **Forecast** — damped Holt-Winters vs seasonal-naive vs recent-average, chosen by rolling-origin
-  backtest (no model sees its test data); 80% intervals from backtest error; MAPE shown.
-- **Growth bridge** — exact YoY decomposition: new listings, lost listings, volume, price. Also
-  like-for-like growth (only SKU×stores live in both years).
-- **Anomaly radar** — robust z-score (median/MAD) of each entity's log-YoY vs its own history.
-- **ABC-XYZ** — revenue value × demand predictability (CV), trailing 12 months.
-- **Stock-out risk** — trailing-3M demand vs replenishment lead time, with suggested order qty
-  and sales at risk. Tune `CFG` at the top of `analytics.js`.
+**Intelligence Hub** (`/intelligence`, `src/data/analytics.js`): backtested forecast with intervals, exact YoY growth
+bridge + like-for-like growth, anomaly radar, ABC-XYZ, stock-out risk & replenishment, expected-vs-actual opportunity
+model, k-means store segments, promo elasticity with a significance guard. Tune `CFG` at the top of `analytics.js`.
 
-Fixes: `discountPct` is now volume-weighted; Executive 360 excess count uses the standard NOD rule.
+**Performance:** lazy routes, vendor/charts chunk split, immutable hashed assets, startup warm-up, single-pass
+`salesByMonth`, **gzip/brotli compression on all responses** (~20 MB -> ~1.5 MB for the data payload).
 
-### v2.1 additions
-- **Opportunity model** (`opportunityModel`): expected-vs-actual per SKU×store, plus distribution white space.
-- **Store segments** (`clusterStores`): k-means on sales, OOS, margin, assortment depth; each segment has a playbook.
-- **Promo elasticity** (`promoElasticity`): fixed-effects log-log regression, with a significance guard.
+**Fixes applied on top of the performance branch**
+- Filters: dropdowns bind to urgent state; pages read `useDeferredValue(filters)`. (The old `startTransition` on
+  controlled selects could make them lag/snap back.) Pages still use `filters`; only `TopFilterBar` uses `uiFilters`.
+- One filter implementation (`matchesFilters` in `metrics.js`) shared by `applyFilters` and `salesByMonth`.
+- Service worker: never caches redirected/HTML responses as assets; prunes old entries; cache bumped to v2.
+- `discountPct` volume-weighted; Executive 360 excess count uses the standard trailing-3M NOD rule.
+- Login: timing-safe compare, 5-attempt/15-minute limiter (in-memory, per instance), httpOnly/sameSite/secure cookie.
+- Static `maxAge` applies only to hashed `/assets/*`.
+
+Run `npm install` (adds `compression`) then `npm run build`.

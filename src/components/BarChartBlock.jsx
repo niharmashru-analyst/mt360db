@@ -1,11 +1,11 @@
-import React from 'react';
+import React, { memo } from 'react';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Cell,
 } from 'recharts';
 
 const COLORS = ['#6366f1', '#22c55e', '#f59e0b', '#ef4444', '#06b6d4', '#a855f7', '#84cc16'];
 
-export default function BarChartBlock({ data, dataKey = 'value', nameKey = 'key', height = 300, colorByIndex = true, yFormat, horizontal = false, onBarClick }) {
+function BarChartBlock({ data, dataKey = 'value', nameKey = 'key', height = 300, colorByIndex = true, yFormat, horizontal = false, onBarClick }) {
   return (
     <ResponsiveContainer width="100%" height={height}>
       <BarChart data={data} layout={horizontal ? 'vertical' : 'horizontal'} margin={{ top: 10, right: 20, left: horizontal ? 80 : 0, bottom: 0 }}>
@@ -29,3 +29,5 @@ export default function BarChartBlock({ data, dataKey = 'value', nameKey = 'key'
     </ResponsiveContainer>
   );
 }
+
+export default memo(BarChartBlock);

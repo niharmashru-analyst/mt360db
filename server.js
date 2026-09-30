@@ -3,6 +3,8 @@
 //                      Start Command: npm start
 import 'dotenv/config';
 import express from 'express';
+import compression from 'compression';
+import crypto from 'crypto';
 import session from 'express-session';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -12,9 +14,13 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const app = express();
+app.set('trust proxy', 1); // Render terminates TLS in front of Node
+app.use(compression()); // /api/data is ~20 MB of JSON uncompressed, ~1.5 MB gzipped
 const PORT = process.env.PORT || 3000;
 const CACHE_MINUTES = Number(process.env.CACHE_MINUTES || 10);
 const FETCH_TIMEOUT_MS = 25000;
+const STATIC_MAX_AGE = 31536000; // Vite assets are content-hashed.
+const HTML_MAX_AGE = 0;
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
@@ -22,8 +28,14 @@ app.use(session({
   secret: process.env.SESSION_SECRET || 'change-this-in-render-env-vars',
   resave: false,
   saveUninitialized: false,
-  cookie: { maxAge: 12 * 60 * 60 * 1000 }, // 12 hours
+  cookie: { maxAge: 12 * 60 * 60 * 1000, httpOnly: true, sameSite: 'lax', secure: 'auto' }, // 12 hours
 }));
+
+// Never let a shared proxy/CDN cache authenticated or business-data API responses.
+app.use('/api', (req, res, next) => {
+  res.setHeader('Cache-Control', 'private, no-store, max-age=0');
+  next();
+});
 
 // ============================================================================
 // LOGIN — real sales data shouldn't sit behind an open link.
@@ -58,11 +70,18 @@ app.get('/login', (req, res) => {
     </form></body></html>`);
 });
 
+const fails = new Map(); // ip -> { n, until } — simple in-memory brute-force limiter
+const sha = (v) => crypto.createHash('sha256').update(String(v)).digest();
 app.post('/login', (req, res) => {
-  if (req.body.password === APP_PASSWORD) {
+  const f = fails.get(req.ip) || { n: 0, until: 0 };
+  if (Date.now() > f.until) f.n = 0;
+  if (f.n >= 5) return res.status(429).send('Too many attempts. Try again in 15 minutes.');
+  if (APP_PASSWORD && crypto.timingSafeEqual(sha(req.body.password || ''), sha(APP_PASSWORD))) {
+    fails.delete(req.ip);
     req.session.authed = true;
     return res.redirect('/');
   }
+  fails.set(req.ip, { n: f.n + 1, until: Date.now() + 15 * 60 * 1000 });
   res.redirect('/login?error=1');
 });
 
@@ -219,6 +238,7 @@ async function fetchWithTimeout(url, ms) {
 // page load doesn't re-fetch/re-parse the workbook. /api/refresh clears it.
 // ============================================================================
 let cache = { data: null, fetchedAt: 0, diagnostics: null };
+let warmPromise = null;
 const CACHE_TTL_MS = CACHE_MINUTES * 60 * 1000;
 
 async function loadWorkbookFromSource() {
@@ -284,12 +304,23 @@ app.get('/api/data', async (req, res) => {
   try {
     const forceRefresh = req.query.refresh === '1';
     const now = Date.now();
+
     if (!forceRefresh && cache.data && now - cache.fetchedAt < CACHE_TTL_MS) {
       return res.json({ ...cache.data, cached: true, cacheAgeSeconds: Math.round((now - cache.fetchedAt) / 1000) });
     }
+
+    // If startup warm-up is already fetching the workbook, share that same
+    // promise instead of downloading/parsing the Excel file a second time.
+    if (!forceRefresh && warmPromise) {
+      const result = await warmPromise;
+      if (result) {
+        return res.json({ ...result, cached: true, cacheAgeSeconds: Math.round((Date.now() - cache.fetchedAt) / 1000) });
+      }
+    }
+
     const result = await loadWorkbookFromSource();
-    cache = { data: result, fetchedAt: now, diagnostics: result.diagnostics };
-    res.json({ ...result, cached: false });
+    cache = { data: result, fetchedAt: Date.now(), diagnostics: result.diagnostics };
+    res.json({ ...result, cached: false, cacheAgeSeconds: 0 });
   } catch (err) {
     console.error('Error in /api/data:', err.message);
     res.status(502).json({ error: err.message });
@@ -314,9 +345,24 @@ app.get('/api/health', async (req, res) => {
   }
 });
 
-app.use(express.static(path.join(__dirname, 'dist')));
+// Static assets are safe to cache aggressively because Vite fingerprints their
+// filenames. HTML stays revalidated so deployments are picked up immediately.
+// API responses are deliberately NOT cached here because they contain business data.
+app.use(express.static(path.join(__dirname, 'dist'), {
+  etag: true,
+  lastModified: true,
+  maxAge: 0, // only hashed /assets/* get long caching (setHeaders below)
+  setHeaders: (res, filePath) => {
+    if (filePath.endsWith('index.html') || filePath.endsWith('sw.js') || filePath.endsWith('manifest.webmanifest')) {
+      res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+    } else if (filePath.includes(`${path.sep}assets${path.sep}`)) {
+      res.setHeader('Cache-Control', `public, max-age=${STATIC_MAX_AGE}, immutable`);
+    }
+  },
+}));
 
 app.get('*', (req, res) => {
+  res.setHeader('Cache-Control', `private, max-age=${HTML_MAX_AGE}, must-revalidate`);
   res.sendFile(path.join(__dirname, 'dist', 'index.html'));
 });
 
@@ -324,4 +370,20 @@ app.listen(PORT, () => {
   console.log(`MT 360 Dashboard running on port ${PORT}`);
   console.log(process.env.ONEDRIVE_EXCEL_URL ? 'ONEDRIVE_EXCEL_URL is set.' : 'ONEDRIVE_EXCEL_URL is NOT set.');
   console.log(APP_PASSWORD ? 'Login is enabled.' : 'APP_PASSWORD not set — login is DISABLED (fine for local dev only).');
+
+  // Warm the data cache without delaying the HTTP listener. This removes the
+  // Excel-download/parse penalty for most users after a Render cold start.
+  if (process.env.ONEDRIVE_EXCEL_URL) {
+    warmPromise = loadWorkbookFromSource()
+      .then((result) => {
+        cache = { data: result, fetchedAt: Date.now(), diagnostics: result.diagnostics };
+        console.log(`Data cache warmed: ${result.rowCount.toLocaleString()} rows.`);
+        return result;
+      })
+      .catch((err) => {
+        console.warn(`Data cache warm-up failed: ${err.message}`);
+        return null;
+      })
+      .finally(() => { warmPromise = null; });
+  }
 });

@@ -1,10 +1,10 @@
-import React from 'react';
+import React, { memo } from 'react';
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
 } from 'recharts';
 
 // series: [{ dataKey, name, color }]
-export default function TrendChart({ data, series, xKey = 'label', height = 280, yFormat }) {
+function TrendChart({ data, series, xKey = 'label', height = 280, yFormat }) {
   return (
     <ResponsiveContainer width="100%" height={height}>
       <LineChart data={data} margin={{ top: 10, right: 20, left: 0, bottom: 0 }}>
@@ -28,3 +28,5 @@ export default function TrendChart({ data, series, xKey = 'label', height = 280,
     </ResponsiveContainer>
   );
 }
+
+export default memo(TrendChart);

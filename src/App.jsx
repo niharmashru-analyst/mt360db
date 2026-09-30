@@ -1,29 +1,29 @@
-import React from 'react';
+import React, { lazy, Suspense } from 'react';
 import { HashRouter, Routes, Route } from 'react-router-dom';
 import { FilterProvider } from './context/FilterContext.jsx';
 import Sidebar from './components/Sidebar.jsx';
 import TopFilterBar from './components/TopFilterBar.jsx';
 
-import ExecutiveOverview from './pages/ExecutiveOverview.jsx';
-import SalesAnalysis from './pages/SalesAnalysis.jsx';
-import RetailerProfile from './pages/RetailerProfile.jsx';
-import Geography from './pages/Geography.jsx';
-import StoreProfile from './pages/StoreProfile.jsx';
-import SkuProfile from './pages/SkuProfile.jsx';
-import Availability from './pages/Availability.jsx';
-import Inventory from './pages/Inventory.jsx';
-import Distribution from './pages/Distribution.jsx';
-import Assortment from './pages/Assortment.jsx';
-import Pricing from './pages/Pricing.jsx';
-import Variance from './pages/Variance.jsx';
-import Pareto from './pages/Pareto.jsx';
-import StorePerformanceMatrix from './pages/StorePerformanceMatrix.jsx';
-import OpportunityEngine from './pages/OpportunityEngine.jsx';
-import GrowthSimulator from './pages/GrowthSimulator.jsx';
-import ActionCenter from './pages/ActionCenter.jsx';
-import DataHealth from './pages/DataHealth.jsx';
-import BusinessReview from './pages/BusinessReview.jsx';
-import IntelligenceHub from './pages/IntelligenceHub.jsx';
+const ExecutiveOverview = lazy(() => import('./pages/ExecutiveOverview.jsx'));
+const SalesAnalysis = lazy(() => import('./pages/SalesAnalysis.jsx'));
+const RetailerProfile = lazy(() => import('./pages/RetailerProfile.jsx'));
+const Geography = lazy(() => import('./pages/Geography.jsx'));
+const StoreProfile = lazy(() => import('./pages/StoreProfile.jsx'));
+const SkuProfile = lazy(() => import('./pages/SkuProfile.jsx'));
+const Availability = lazy(() => import('./pages/Availability.jsx'));
+const Inventory = lazy(() => import('./pages/Inventory.jsx'));
+const Distribution = lazy(() => import('./pages/Distribution.jsx'));
+const Assortment = lazy(() => import('./pages/Assortment.jsx'));
+const Pricing = lazy(() => import('./pages/Pricing.jsx'));
+const Variance = lazy(() => import('./pages/Variance.jsx'));
+const Pareto = lazy(() => import('./pages/Pareto.jsx'));
+const StorePerformanceMatrix = lazy(() => import('./pages/StorePerformanceMatrix.jsx'));
+const OpportunityEngine = lazy(() => import('./pages/OpportunityEngine.jsx'));
+const GrowthSimulator = lazy(() => import('./pages/GrowthSimulator.jsx'));
+const ActionCenter = lazy(() => import('./pages/ActionCenter.jsx'));
+const DataHealth = lazy(() => import('./pages/DataHealth.jsx'));
+const BusinessReview = lazy(() => import('./pages/BusinessReview.jsx'));
+const IntelligenceHub = lazy(() => import('./pages/IntelligenceHub.jsx'));
 
 export default function App() {
   return (
@@ -34,7 +34,8 @@ export default function App() {
           <div className="main-area">
             <TopFilterBar />
             <div className="page-content">
-              <Routes>
+              <Suspense fallback={<div className="page-route-loading"><div className="spinner"/><p>Loading view…</p></div>}>
+                <Routes>
                 <Route path="/" element={<ExecutiveOverview />} />
                 <Route path="/intelligence" element={<IntelligenceHub />} />
                 <Route path="/business-review" element={<BusinessReview />} />
@@ -55,7 +56,8 @@ export default function App() {
                 <Route path="/growth-simulator" element={<GrowthSimulator />} />
                 <Route path="/action-center" element={<ActionCenter />} />
                 <Route path="/data-health" element={<DataHealth />} />
-              </Routes>
+                </Routes>
+              </Suspense>
             </div>
           </div>
         </div>

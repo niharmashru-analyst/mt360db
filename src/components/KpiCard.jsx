@@ -1,6 +1,6 @@
-import React from 'react';
+import React, { memo } from 'react';
 
-export default function KpiCard({ label, value, subtext, tone = 'neutral' }) {
+function KpiCard({ label, value, subtext, tone = 'neutral' }) {
   return (
     <div className={`kpi-card kpi-tone-${tone}`}>
       <div className="kpi-label">{label}</div>
@@ -9,3 +9,5 @@ export default function KpiCard({ label, value, subtext, tone = 'neutral' }) {
     </div>
   );
 }
+
+export default memo(KpiCard);
