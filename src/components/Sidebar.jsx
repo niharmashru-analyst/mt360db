@@ -98,7 +98,7 @@ function Section({ title, icon, groups, open, onToggle }) {
 }
 
 export default function Sidebar() {
-  const { dataSource } = useFilters();
+  const { dataSource, dataError } = useFilters();
   const location = useLocation();
   const [intelligenceOpen, setIntelligenceOpen] = useState(() => localStorage.getItem('mt360-intelligence-open') !== 'false');
   const [dashboardOpen, setDashboardOpen] = useState(() => localStorage.getItem('mt360-dashboard-open') !== 'false');
@@ -116,6 +116,11 @@ export default function Sidebar() {
       <div className={`data-source-badge ${dataSource}`}>
         {dataSource === 'live' ? '● LIVE DATA' : '● MOCK DATA'}
       </div>
+      {dataSource !== 'live' && dataError && (
+        <div style={{ margin: '6px 12px', padding: '8px 10px', borderRadius: 6, background: '#fef2f2', color: '#991b1b', fontSize: 11, lineHeight: 1.4 }}>
+          <strong>Showing sample data.</strong> Your real data failed to load: {dataError}
+        </div>
+      )}
 
       <Section
         title="INTELLIGENCE"

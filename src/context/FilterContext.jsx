@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useEffect, useMemo, useState, useCallback, useDeferredValue } from 'react';
-import { loadData, refreshData, getDataSource } from '../data/loadData.js';
+import { loadData, refreshData, getDataSource, getDataError } from '../data/loadData.js';
 import { applyFilters, buildMonthlyQtyIndex } from '../data/metrics.js';
 
 const FilterContext = createContext(null);
@@ -158,6 +158,7 @@ export function FilterProvider({ children }) {
     skuMaster: data.skuMaster,
     listingMatrix: data.listingMatrix,
     dataSource: getDataSource(),
+    dataError: getDataError(),
     filters: deferredFilters,
     uiFilters: filters,
     filterOptions,

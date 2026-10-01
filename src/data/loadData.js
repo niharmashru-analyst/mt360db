@@ -10,6 +10,7 @@ import { generateMockData } from './generateMockData.js';
 let cachedData = null;
 let cachedSource = null; // 'live' | 'mock'
 let lastDiagnostics = null;
+let lastError = null; // why we fell back to mock data (shown in the sidebar)
 
 function deriveMastersFromRecords(records) {
   const storeMap = new Map();
@@ -55,11 +56,13 @@ export async function loadData({ force = false } = {}) {
     console.log(`[loadData] LIVE data: ${data.meta.rowCount} rows from sheet "${data.meta.sheetUsed}"${data.meta.cached ? ' (cached)' : ''}.`);
     cachedData = data;
     cachedSource = 'live';
+    lastError = null;
     return cachedData;
   } catch (err) {
     console.warn(`[loadData] Falling back to mock data — ${err.message}`);
     cachedData = generateMockData();
     cachedSource = 'mock';
+    lastError = err.message;
     return cachedData;
   }
 }
@@ -84,4 +87,8 @@ export async function fetchDataHealth() {
   const body = await res.json();
   lastDiagnostics = body;
   return body;
+}
+
+export function getDataError() {
+  return lastError;
 }

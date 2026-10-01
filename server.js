@@ -7,6 +7,7 @@ import compression from 'compression';
 import crypto from 'crypto';
 import session from 'express-session';
 import path from 'path';
+import fs from 'fs';
 import { fileURLToPath } from 'url';
 import * as XLSX from 'xlsx';
 
@@ -203,7 +204,7 @@ function excelRowToRecord(row, headerMap) {
       record[fieldName] = isNaN(n) ? 0 : n;
       return;
     }
-    record[fieldName] = value !== undefined ? String(value) : '';
+    record[fieldName] = value !== undefined ? String(value).trim() : '';
   });
   if (!record.tertiaryQty) record.tertiaryQty = record.salesQty;
   if (!record.tertiaryValue) record.tertiaryValue = record.salesValue;
@@ -241,63 +242,126 @@ let cache = { data: null, fetchedAt: 0, diagnostics: null };
 let warmPromise = null;
 const CACHE_TTL_MS = CACHE_MINUTES * 60 * 1000;
 
-async function loadWorkbookFromSource() {
-  const sourceUrl = process.env.ONEDRIVE_EXCEL_URL;
-  if (!sourceUrl) {
-    throw new Error('ONEDRIVE_EXCEL_URL is not set. Add it in Render → Environment (or .env locally).');
-  }
+// ============================================================================
+// MONTH-ON-MONTH FILES
+// Each file = one month (same columns). Sources, merged in this order:
+//   1. every .xlsx/.xlsm/.xls/.csv in the data/ folder (or DATA_DIR)
+//   2. every share link in ONEDRIVE_EXCEL_URLS (comma / semicolon / new-line separated;
+//      the old single ONEDRIVE_EXCEL_URL still works)
+// Month comes from the "Month" column; if a row has none, from the file name
+// (2026-08.xlsx, 2026_08_sales.csv, Aug-2026.xlsx, August 2026.xlsx).
+// ============================================================================
+const MAX_ROWS = Number(process.env.MAX_ROWS || 400000); // every row goes to the browser; refuse rather than crash
+const MONTHS_EN = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'];
 
-  const fetchUrl = toDirectDownloadUrl(sourceUrl);
-  const response = await fetchWithTimeout(fetchUrl, FETCH_TIMEOUT_MS);
+function monthFromName(name) {
+  const n = name.toLowerCase();
+  let m = n.match(/(20\d{2})[-_ .]?(0[1-9]|1[0-2])(?!\d)/);
+  if (m) return `${m[1]}-${m[2]}`;
+  m = n.match(/(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*[-_ .]*(20\d{2}|\d{2})(?!\d)/);
+  if (m) return `${m[2].length === 2 ? `20${m[2]}` : m[2]}-${String(MONTHS_EN.indexOf(m[1]) + 1).padStart(2, '0')}`;
+  return null;
+}
 
-  if (!response.ok) {
-    throw new Error(`Fetch failed with status ${response.status}. Check the link is set to "Anyone with the link".`);
-  }
+// "1.Top 10" / "2.Top 25" / "6.Tail" -> the three tiers the Pareto pages use.
+function paretoTier(v) {
+  const t = String(v).replace(/^\d+\s*\.\s*/, '').trim();
+  return t === 'Top 10' || t === 'Top 25' ? t : 'Others';
+}
 
-  const contentType = response.headers.get('content-type') || '';
-  const buffer = await response.arrayBuffer();
-
-  if (contentType.includes('text/html')) {
+async function fetchBuffer(url) {
+  const response = await fetchWithTimeout(toDirectDownloadUrl(url), FETCH_TIMEOUT_MS);
+  if (!response.ok) throw new Error(`Fetch failed with status ${response.status}. Check the link is set to "Anyone with the link".`);
+  if ((response.headers.get('content-type') || '').includes('text/html')) {
     throw new Error('Received an HTML page instead of an Excel file — the link likely requires login or redirected to a viewer.');
   }
+  return Buffer.from(await response.arrayBuffer());
+}
 
-  const workbook = XLSX.read(buffer, { type: 'array', cellDates: true });
+function listSources() {
+  const dir = process.env.DATA_DIR || path.join(__dirname, 'data');
+  const files = fs.existsSync(dir)
+    ? fs.readdirSync(dir).filter((f) => /\.(xlsx|xlsm|xls|csv)$/i.test(f) && !f.startsWith('~$')).sort()
+      .map((f) => ({ name: f, read: async () => fs.readFileSync(path.join(dir, f)) }))
+    : [];
+  const links = (process.env.ONEDRIVE_EXCEL_URLS || process.env.ONEDRIVE_EXCEL_URL || '')
+    .split(/[\n,;]+/).map((s) => s.trim()).filter(Boolean)
+    .map((u, i) => ({ name: `link ${i + 1}`, read: () => fetchBuffer(u) }));
+  return [...files, ...links];
+}
+
+function parseOne(buffer, name) {
+  const workbook = XLSX.read(buffer, { type: 'buffer', cellDates: true });
   const sheetName = workbook.SheetNames.includes('Data') ? 'Data' : workbook.SheetNames[0];
-  const sheet = workbook.Sheets[sheetName];
-  const rawRows = XLSX.utils.sheet_to_json(sheet, { defval: '' });
+  const rawRows = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName], { defval: '' });
+  if (!rawRows.length) throw new Error(`sheet "${sheetName}" has 0 rows.`);
+  const actualHeaders = Object.keys(rawRows[0]);
+  const { map, unmatched, missingFields } = resolveHeaderMap(actualHeaders);
+  const fallbackMonth = monthFromName(name);
+  let placeholders = 0;
+  const records = [];
+  rawRows.forEach((row) => {
+    const r = excelRowToRecord(row, map);
+    if (!r.outletCode || !r.skuCode || r.outletCode === '-' || r.skuCode === '-') { placeholders++; return; } // "-" filler rows
+    if (!/^\d{4}-\d{2}$/.test(r.month || '') && fallbackMonth) r.month = fallbackMonth;
+    if (r.pareto !== undefined) r.pareto = paretoTier(r.pareto);
+    records.push(r);
+  });
+  return { records, sheetName, actualHeaders, unmatched, missingFields, placeholders, matchedFields: Object.values(map) };
+}
 
-  if (rawRows.length === 0) {
-    throw new Error(`Sheet "${sheetName}" parsed but contained 0 rows.`);
+async function loadWorkbookFromSource() {
+  const sources = listSources();
+  if (!sources.length) {
+    throw new Error('No data found. Put one file per month (e.g. 2026-08.xlsx) in the data/ folder, or set ONEDRIVE_EXCEL_URLS to the share links.');
+  }
+  const seen = new Set();
+  const records = [];
+  const files = [];
+  let dupes = 0, placeholders = 0, first = null;
+
+  for (const src of sources) { // one file at a time: peak memory = one month, not all months
+    let parsed;
+    try { parsed = parseOne(await src.read(), src.name); } catch (err) { throw new Error(`${src.name}: ${err.message}`); }
+    first = first || parsed;
+    let kept = 0;
+    parsed.records.forEach((r) => {
+      const k = `${r.month}|${r.outletCode}|${r.skuCode}`;
+      if (seen.has(k)) { dupes++; return; }
+      seen.add(k); records.push(r); kept++;
+    });
+    placeholders += parsed.placeholders;
+    files.push({ name: src.name, rows: kept, months: [...new Set(parsed.records.map((r) => r.month))].sort() });
+    if (records.length > MAX_ROWS) {
+      throw new Error(`Loaded ${records.length.toLocaleString()} rows (limit ${MAX_ROWS.toLocaleString()}). The dashboard sends every row to the browser, so this would crash it. Use fewer months, or aggregate the files first.`);
+    }
   }
 
-  const actualHeaders = Object.keys(rawRows[0]);
-  const { map: headerMap, unmatched, missingFields } = resolveHeaderMap(actualHeaders);
-  const records = rawRows.map((row) => excelRowToRecord(row, headerMap));
   const months = [...new Set(records.map((r) => r.month))].filter(Boolean).sort();
-
-  // ---- Data health diagnostics (surfaced on the Data Health page) ----
-  const storeCodesInData = new Set(records.map((r) => r.outletCode));
-  const skuCodesInData = new Set(records.map((r) => r.skuCode));
-  const monthPattern = /^\d{4}-\d{2}$/;
-  const badMonthRows = records.filter((r) => !monthPattern.test(r.month)).length;
-  const zeroValueRows = records.filter((r) => r.salesQty === 0 && r.salesValue === 0).length;
+  const warnings = [];
+  if (!records.some((r) => r.salesValue > 0)) warnings.push('Sales Value is 0 in every row — is MRP filled in? All revenue numbers will show zero.');
+  if (months.length < 13) warnings.push(`Only ${months.length} month(s) loaded — year-on-year growth needs the same month last year (13+ months).`);
+  warnings.forEach((w) => console.warn(`[data] ${w}`));
 
   const diagnostics = {
-    sheetUsed: sheetName,
+    sheetUsed: files.length === 1 ? first.sheetName : `${files.length} files`,
     rowCount: records.length,
     monthsFound: months,
-    columnsInFile: actualHeaders,
-    matchedFields: Object.values(headerMap),
-    unmatchedColumns: unmatched,
-    missingFields, // fields the app needs but couldn't find in this file
-    badMonthRows, // rows whose month couldn't be parsed to YYYY-MM
-    zeroValueRows,
-    uniqueOutletCodes: storeCodesInData.size,
-    uniqueSkuCodes: skuCodesInData.size,
+    columnsInFile: first.actualHeaders,
+    matchedFields: first.matchedFields,
+    unmatchedColumns: first.unmatched,
+    missingFields: first.missingFields,
+    badMonthRows: records.filter((r) => !/^\d{4}-\d{2}$/.test(r.month)).length,
+    zeroValueRows: records.filter((r) => r.salesQty === 0 && r.salesValue === 0).length,
+    uniqueOutletCodes: new Set(records.map((r) => r.outletCode)).size,
+    uniqueSkuCodes: new Set(records.map((r) => r.skuCode)).size,
+    filesLoaded: files,
+    duplicatesDropped: dupes,
+    placeholderRowsDropped: placeholders,
+    warnings,
     checkedAt: new Date().toISOString(),
   };
-
-  return { records, months, sheetUsed: sheetName, rowCount: records.length, diagnostics };
+  return { records, months, sheetUsed: diagnostics.sheetUsed, rowCount: records.length, diagnostics };
 }
 
 app.get('/api/data', async (req, res) => {
@@ -368,12 +432,12 @@ app.get('*', (req, res) => {
 
 app.listen(PORT, () => {
   console.log(`MT 360 Dashboard running on port ${PORT}`);
-  console.log(process.env.ONEDRIVE_EXCEL_URL ? 'ONEDRIVE_EXCEL_URL is set.' : 'ONEDRIVE_EXCEL_URL is NOT set.');
+  console.log(`Data sources found: ${listSources().length} (data/ folder + ONEDRIVE_EXCEL_URLS).`);
   console.log(APP_PASSWORD ? 'Login is enabled.' : 'APP_PASSWORD not set — login is DISABLED (fine for local dev only).');
 
   // Warm the data cache without delaying the HTTP listener. This removes the
   // Excel-download/parse penalty for most users after a Render cold start.
-  if (process.env.ONEDRIVE_EXCEL_URL) {
+  if (listSources().length) {
     warmPromise = loadWorkbookFromSource()
       .then((result) => {
         cache = { data: result, fetchedAt: Date.now(), diagnostics: result.diagnostics };

@@ -130,3 +130,9 @@ model, k-means store segments, promo elasticity with a significance guard. Tune 
 - Static `maxAge` applies only to hashed `/assets/*`.
 
 Run `npm install` (adds `compression`) then `npm run build`.
+
+### v3.2 — month-on-month files
+Load one file per month from `data/` and/or `ONEDRIVE_EXCEL_URLS`; files are merged, trimmed, de-duplicated,
+"-" filler rows dropped, Pareto labels ("1.Top 10"…) mapped to Top 10 / Top 25 / Others. `MAX_ROWS` (default 400,000)
+stops an oversized load with a clear message instead of crashing. If live data fails, the sidebar now shows the reason
+next to the MOCK DATA badge. Warnings (zero sales value, <13 months) are logged and in `/api/health`.
