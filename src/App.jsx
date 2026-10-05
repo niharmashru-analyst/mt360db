@@ -23,6 +23,7 @@ const GrowthSimulator = lazy(() => import('./pages/GrowthSimulator.jsx'));
 const ActionCenter = lazy(() => import('./pages/ActionCenter.jsx'));
 const DataHealth = lazy(() => import('./pages/DataHealth.jsx'));
 const BusinessReview = lazy(() => import('./pages/BusinessReview.jsx'));
+const PeriodComparison = lazy(() => import('./pages/PeriodComparison.jsx'));
 const IntelligenceHub = lazy(() => import('./pages/IntelligenceHub.jsx'));
 
 export default function App() {
@@ -37,6 +38,7 @@ export default function App() {
               <Suspense fallback={<div className="page-route-loading"><div className="spinner"/><p>Loading view…</p></div>}>
                 <Routes>
                 <Route path="/" element={<ExecutiveOverview />} />
+                <Route path="/period" element={<PeriodComparison />} />
                 <Route path="/intelligence" element={<IntelligenceHub />} />
                 <Route path="/business-review" element={<BusinessReview />} />
                 <Route path="/sales" element={<SalesAnalysis />} />

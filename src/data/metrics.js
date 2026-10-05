@@ -315,3 +315,38 @@ export function formatNumber(value) {
   if (value === null || value === undefined || isNaN(value)) return '—';
   return Math.round(value).toLocaleString('en-IN');
 }
+
+// ---- Period windows (Indian fiscal year: Apr–Mar) --------------------------
+export const PERIOD_DEFS = [
+  { key: 'MTD', label: 'MTD' },
+  { key: 'QTD', label: 'QTD (FY Qtr)' },
+  { key: 'YTD', label: 'YTD (FY Apr→)' },
+  { key: 'L3M', label: 'L3M' },
+  { key: 'L6M', label: 'L6M' },
+];
+
+export function periodMonths(endMonth, key) {
+  const [y, m] = endMonth.split('-').map(Number);
+  const back = (n) => Array.from({ length: n }, (_, i) => getPriorMonth(endMonth, n - 1 - i));
+  const fyIdx = (m + 8) % 12; // Apr=0 ... Mar=11
+  if (key === 'MTD') return [endMonth];
+  if (key === 'QTD') return back((fyIdx % 3) + 1);
+  if (key === 'YTD') return back(fyIdx + 1);
+  if (key === 'L3M') return back(3);
+  if (key === 'L6M') return back(6);
+  return [endMonth];
+}
+
+// current window, same window last year, and the immediately preceding window of equal length
+export function periodWindows(endMonth, key) {
+  const cur = periodMonths(endMonth, key);
+  return {
+    cur,
+    ly: cur.map(getPriorYearMonth),
+    prev: cur.map((m) => getPriorMonth(m, cur.length)),
+  };
+}
+
+export function sumWindow(allRecords, filters, months, field = 'salesValue') {
+  return salesByMonth(allRecords, filters, months, field).reduce((a, b) => a + b, 0);
+}

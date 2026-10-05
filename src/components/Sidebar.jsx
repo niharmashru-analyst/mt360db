@@ -11,6 +11,7 @@ const INTELLIGENCE_GROUPS = [
     label: 'PERFORMANCE',
     items: [
       { path: '/', label: '🏠 Executive 360', end: true },
+      { path: '/period', label: '🗓 Period Comparison' },
       { path: '/sales', label: '📈 Sales Analysis' },
       { path: '/retailer', label: '🏪 Retailer 360' },
       { path: '/geography', label: '🗺 Geography 360' },

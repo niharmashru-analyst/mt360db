@@ -206,9 +206,19 @@ function excelRowToRecord(row, headerMap) {
     }
     record[fieldName] = value !== undefined ? String(value).trim() : '';
   });
-  if (!record.tertiaryQty) record.tertiaryQty = record.salesQty;
-  if (!record.tertiaryValue) record.tertiaryValue = record.salesValue;
-  if (!record.stockQty) record.stockQty = record.clStock;
+  const n = (v) => Number(v) || 0;
+  record.tertiaryQty = n(record.tertiaryQty) || n(record.salesQty);
+  record.tertiaryValue = n(record.tertiaryValue) || record.tertiaryQty * n(record.mrp);
+  record.salesQty = record.tertiaryQty;
+  record.salesValue = record.tertiaryValue;
+  record.stockQty = n(record.stockQty) || n(record.clStock);
+  record.filledQty = n(record.filledQty);
+  record.primaryQty = record.filledQty;
+  record.primaryValue = n(record.primaryValue) || record.primaryQty * n(record.mrp);
+  delete record.fillRate;
+  record.listed = record.listed !== false;
+  record.marginPct = n(record.marginPct);
+  record.promoPct = n(record.promoPct);
   return record;
 }
 
