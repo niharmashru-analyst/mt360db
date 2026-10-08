@@ -14,7 +14,7 @@ function TrendChart({ data, series, xKey = 'label', height = 280, yFormat }) {
         <Tooltip formatter={(v) => (yFormat ? yFormat(v) : v)} />
         <Legend />
         {series.map((s) => (
-          <Line
+          <Line isAnimationActive={false} 
             key={s.dataKey}
             type="monotone"
             dataKey={s.dataKey}

@@ -47,10 +47,10 @@ export function TrendCombo({ data, height = 340 }) {
         <ReferenceLine yAxisId="g" y={0} stroke="#9ca3af" strokeDasharray="2 2" />
         <Tooltip content={<Tip />} />
         <Legend />
-        <Bar yAxisId="v" dataKey="current" name="Sales" fill="url(#gCur)" radius={[6, 6, 0, 0]} maxBarSize={38} />
-        <Line yAxisId="v" dataKey="ly" name="Last year" stroke="#9ca3af" strokeWidth={2} strokeDasharray="5 4" dot={false} connectNulls />
-        <Line yAxisId="v" dataKey="target" name="Target" stroke="#f59e0b" strokeWidth={2} dot={{ r: 3 }} connectNulls />
-        <Line yAxisId="g" dataKey="yoy" name="YoY %" stroke="#16a34a" strokeWidth={2} dot={{ r: 3 }} connectNulls />
+        <Bar isAnimationActive={false} yAxisId="v" dataKey="current" name="Sales" fill="url(#gCur)" radius={[6, 6, 0, 0]} maxBarSize={38} />
+        <Line isAnimationActive={false} yAxisId="v" dataKey="ly" name="Last year" stroke="#9ca3af" strokeWidth={2} strokeDasharray="5 4" dot={false} connectNulls />
+        <Line isAnimationActive={false} yAxisId="v" dataKey="target" name="Target" stroke="#f59e0b" strokeWidth={2} dot={{ r: 3 }} connectNulls />
+        <Line isAnimationActive={false} yAxisId="g" dataKey="yoy" name="YoY %" stroke="#16a34a" strokeWidth={2} dot={{ r: 3 }} connectNulls />
       </ComposedChart>
     </ResponsiveContainer>
   );
@@ -120,7 +120,7 @@ export function StoreBubble({ rows, height = 380 }) {
         <Tooltip content={<Tip />} />
         <Legend />
         {[...new Set(rows.map((r) => r.segment))].map((s) => (
-          <Scatter key={s} name={s} data={rows.filter((r) => r.segment === s)} fill={SEG[s] || '#6366f1'} fillOpacity={0.65} />
+          <Scatter isAnimationActive={false}  key={s} name={s} data={rows.filter((r) => r.segment === s)} fill={SEG[s] || '#6366f1'} fillOpacity={0.65} />
         ))}
       </ScatterChart>
     </ResponsiveContainer>
@@ -145,10 +145,10 @@ export function ParetoCurve({ rows, height = 320 }) {
         <YAxis yAxisId="c" orientation="right" domain={[0, 100]} tickFormatter={(v) => `${v}%`} {...axis} />
         <ReferenceLine yAxisId="c" y={80} stroke="#ef4444" strokeDasharray="4 4" />
         <Tooltip content={<Tip />} />
-        <Bar yAxisId="v" dataKey="sales" name="Sales" radius={[3, 3, 0, 0]}>
+        <Bar isAnimationActive={false} yAxisId="v" dataKey="sales" name="Sales" radius={[3, 3, 0, 0]}>
           {rows.map((r, i) => <Cell key={i} fill={ABC[r.abc]} />)}
         </Bar>
-        <Line yAxisId="c" dataKey="cum" name="Cumulative %" stroke="#111827" strokeWidth={2} dot={false} />
+        <Line isAnimationActive={false} yAxisId="c" dataKey="cum" name="Cumulative %" stroke="#111827" strokeWidth={2} dot={false} />
       </ComposedChart>
     </ResponsiveContainer>
   );

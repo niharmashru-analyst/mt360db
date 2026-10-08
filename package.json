@@ -7,21 +7,24 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "start": "node server.js"
+    "start": "node server.js",
+    "convert": "node --max-old-space-size=4096 tools/review_to_monthly.mjs"
   },
   "dependencies": {
+    "compression": "^1.7.4",
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
+    "express-session": "^1.18.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-router-dom": "^6.26.0",
     "recharts": "^2.12.7",
-    "express": "^4.19.2",
-    "express-session": "^1.18.0",
-    "xlsx": "^0.18.5",
-    "dotenv": "^16.4.5",
-    "compression": "^1.7.4"
+    "xlsx": "^0.18.5"
   },
   "devDependencies": {
     "@vitejs/plugin-react": "^4.3.1",
+    "exceljs": "^4.4.0",
+    "unzipper": "^0.12.5",
     "vite": "^5.4.1"
   }
 }

@@ -22,7 +22,7 @@ function BarChartBlock({ data, dataKey = 'value', nameKey = 'key', height = 300,
           </>
         )}
         <Tooltip formatter={(v) => (yFormat ? yFormat(v) : v)} />
-        <Bar dataKey={dataKey} radius={[4, 4, 0, 0]} onClick={(entry) => onBarClick?.(entry?.payload || entry)} cursor={onBarClick ? 'pointer' : undefined}>
+        <Bar isAnimationActive={false} dataKey={dataKey} radius={[4, 4, 0, 0]} onClick={(entry) => onBarClick?.(entry?.payload || entry)} cursor={onBarClick ? 'pointer' : undefined}>
           {colorByIndex && data.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
         </Bar>
       </BarChart>

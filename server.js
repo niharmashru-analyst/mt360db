@@ -141,7 +141,7 @@ const ALIASES = {
 const NUMBER_FIELDS = new Set([
   'mrp', 'salesQty', 'salesValue', 'opStock', 'clStock', 'stockQty',
   'primaryQty', 'primaryValue', 'tertiaryQty', 'tertiaryValue', 'targetValue',
-  'marginPct', 'promoPct', 'visibility', 'orderQty', 'filledQty', 'fillRate',
+  'marginPct', 'promoPct', 'visibility', 'manpower', 'orderQty', 'filledQty', 'fillRate',
 ]);
 
 function normalizeHeader(h) {
