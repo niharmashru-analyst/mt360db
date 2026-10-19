@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { NavLink, useLocation } from 'react-router-dom';
+import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { useFilters } from '../context/FilterContext.jsx';
 
 const INTELLIGENCE_GROUPS = [
@@ -10,7 +10,7 @@ const INTELLIGENCE_GROUPS = [
   {
     label: 'PERFORMANCE',
     items: [
-      { path: '/', label: '🏠 Executive 360', end: true },
+      { path: '/executive', label: '🏠 Executive 360' },
       { path: '/period', label: '🗓 Period Comparison' },
       { path: '/sales', label: '📈 Sales Analysis' },
       { path: '/retailer', label: '🏪 Retailer 360' },
@@ -101,6 +101,8 @@ function Section({ title, icon, groups, open, onToggle }) {
 export default function Sidebar() {
   const { dataSource, dataError } = useFilters();
   const location = useLocation();
+  const navigate = useNavigate();
+  const insightMode = ['/', '/intelligence', '/action-center'].includes(location.pathname);
   const [intelligenceOpen, setIntelligenceOpen] = useState(() => localStorage.getItem('mt360-intelligence-open') !== 'false');
   const [dashboardOpen, setDashboardOpen] = useState(() => localStorage.getItem('mt360-dashboard-open') !== 'false');
 
@@ -123,6 +125,19 @@ export default function Sidebar() {
         </div>
       )}
 
+      <div className="mode-switch">
+        <button className={insightMode ? 'on' : ''} onClick={() => navigate('/')}>✨ Insights</button>
+        <button className={!insightMode ? 'on' : ''} onClick={() => navigate('/executive')}>📊 Data</button>
+      </div>
+      {insightMode ? (
+        <div className="sidebar-section-content">
+          <div className="sidebar-group"><div className="sidebar-group-label">UNDERSTAND</div>
+            <NavLink to="/" end className={({ isActive }) => `sidebar-link${isActive ? ' active' : ''}`}>✨ What's going on</NavLink>
+            <NavLink to="/intelligence" className={({ isActive }) => `sidebar-link${isActive ? ' active' : ''}`}>🧠 Intelligence Hub</NavLink>
+            <NavLink to="/action-center" className={({ isActive }) => `sidebar-link${isActive ? ' active' : ''}`}>⚡ Action Center</NavLink>
+          </div>
+        </div>
+      ) : (<>
       <Section
         title="INTELLIGENCE"
         icon="🧠"
@@ -138,6 +153,7 @@ export default function Sidebar() {
         open={dashboardOpen}
         onToggle={() => setDashboardOpen(v => !v)}
       />
+      </>)}
 
       <div className="sidebar-footer">Intelligence + Business Dashboard</div>
     </nav>
